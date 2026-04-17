@@ -1,0 +1,57 @@
+{
+  "prompt_version": "qwen3_235b_a22b_2507_reviewer_semantic_v1",
+  "role": "reviewer_classifier",
+  "teacher_input": "title_abstract_candidate",
+  "student_target": "abstract_only",
+  "response_schema": {
+    "decision": "accept|drop",
+    "faithful": "boolean",
+    "captures_main_point": "boolean",
+    "style_ok": "boolean",
+    "title_overlap_ok": "boolean",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "reviewer_semantic_classifier",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["accept", "drop"]
+          },
+          "faithful": {
+            "type": "boolean"
+          },
+          "captures_main_point": {
+            "type": "boolean"
+          },
+          "style_ok": {
+            "type": "boolean"
+          },
+          "title_overlap_ok": {
+            "type": "boolean"
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "faithful",
+          "captures_main_point",
+          "style_ok",
+          "title_overlap_ok",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You are a strict semantic classifier for paper summaries.\nReturn one JSON object only.\nDo not explain your reasoning.\nDo not add prose before or after the JSON.\n\nProduct context\n- The title is already visible in the feed.\n- Local code already filters out summaries that are too long, too short, multi-sentence, duplicated, or have banned openings.\n- Your job is only to judge the semantic quality of the surviving candidate.\n- Focus on whether the summary is faithful, useful, and adds real value beyond the title.\n\nDecision rule\n- accept only if every semantic check is true\n- drop if any semantic check is false\n- if unsure, drop\n- do not try to rescue borderline summaries\n\nChecks\n- faithful: every factual claim in the summary is supported by the abstract\n- captures_main_point: the summary states the strongest reason to open the paper, not a side detail\n- style_ok: the summary is clear, direct, and feed-friendly, with no academic filler or awkward phrasing\n- title_overlap_ok: the summary adds something beyond the title and is not mostly a restatement of it\n\nHow to think about the checks\n- Treat faithful as an evidence check, not a vibe check.\n- Treat captures_main_point as the strongest-payoff test.\n- Treat style_ok as readability plus usefulness, not grammar perfection.\n- Treat title_overlap_ok as a semantic distinction from the title, not a token-count rule.\n- Ignore length and sentence count; those are handled elsewhere.\n\nReason span rules\n- If decision is accept, reason_span must be empty.\n- If decision is drop, reason_span must be a short plain-English phrase, not a field name.\n- Good examples: \"mostly repeats the title\", \"too generic\", \"misses the main payoff\", \"not clearly supported by the abstract\".\n- Bad examples: \"faithful\", \"captures_main_point\", \"style_ok\", \"false\".\n\nUse the title only as background context.\nThe summary should still earn its place even though the title is already shown."
+  ,
+  "user_prompt_template": "Return JSON only using this schema:\n{{\"decision\":\"accept|drop\",\"faithful\":true,\"captures_main_point\":true,\"style_ok\":true,\"title_overlap_ok\":true,\"reason_span\":\"\"}}\n\nAccept only if the candidate is a strong semantic summary that survives the local hard filters and adds real value beyond the title.\nDrop if it is unsupported, generic, title-shaped, or misses the main payoff.\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCANDIDATE SUMMARY:\n{candidate_summary}"
+}

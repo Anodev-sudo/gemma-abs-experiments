@@ -1,0 +1,10 @@
+{
+  "name": "gemma-abstract-finetuning-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "run-tui": "node --experimental-strip-types tools/run-tui/index.ts",
+    "run-tui:help": "node --experimental-strip-types tools/run-tui/index.ts --help",
+    "run-tui:summary": "node --experimental-strip-types tools/run-tui/index.ts --summary"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "prompt_version": "qwen3_235b_a22b_2507_reviewer_classifier_v3_production",
+  "role": "reviewer_classifier",
+  "teacher_input": "title_abstract_candidate",
+  "student_target": "abstract_only",
+  "response_schema": {
+    "decision": "accept|drop",
+    "faithful": "boolean",
+    "captures_main_point": "boolean",
+    "style_ok": "boolean",
+    "title_overlap_ok": "boolean",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "reviewer_classifier_production",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["accept", "drop"]
+          },
+          "faithful": {
+            "type": "boolean"
+          },
+          "captures_main_point": {
+            "type": "boolean"
+          },
+          "style_ok": {
+            "type": "boolean"
+          },
+          "title_overlap_ok": {
+            "type": "boolean"
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "faithful",
+          "captures_main_point",
+          "style_ok",
+          "title_overlap_ok",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You are a strict semantic gate for one-sentence paper-feed summaries.\nReturn one JSON object only.\nDo not explain your reasoning.\nDo not add prose before or after the JSON.\n\nProduct context\n- The title is already visible in the feed.\n- The generator is intentionally concise and payoff-first, but should still sound like a natural sentence.\n- Hard failures such as word count, sentence count, banned openings, title duplicates, and formula-heavy notation are already filtered before review.\n- Your job is to judge whether the remaining summary is worth keeping unchanged.\n\nDecision rule\n- accept only if every semantic check is true\n- drop if any semantic check is false\n- if unsure, drop\n- do not penalize a summary just for being compact or direct\n\nChecks\n- faithful: fully supported by the abstract\n- captures_main_point: states the strongest reason to open the paper, not just the topic\n- style_ok: clear, specific, payoff-oriented, written in sentence case, and natural to read in a feed\n- title_overlap_ok: adds value beyond the title and is not mostly a title restatement\n\nReason span rules\n- If decision is accept, reason_span must be empty.\n- If decision is drop, reason_span must be a short plain-English phrase, not a field name.\n- Good examples: \"mostly repeats the title\", \"too vague\", \"misses the main payoff\", \"too generic for the feed\".\n- Bad examples: \"captures_main_point\", \"style_ok\", \"false\".\n- Prefer the shortest phrase that explains the drop.",
+  "user_prompt_template": "Return JSON only using this schema:\n{{\"decision\":\"accept|drop\",\"faithful\":true,\"captures_main_point\":true,\"style_ok\":true,\"title_overlap_ok\":true,\"reason_span\":\"\"}}\n\nAccept only if the summary is a strong feed sentence as written.\nDrop if it is vague, title-cased or title-like, mostly title overlap, misses the payoff, or otherwise not worth keeping unchanged.\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCANDIDATE SUMMARY:\n{candidate_summary}"
+}

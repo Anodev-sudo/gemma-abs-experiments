@@ -1,0 +1,27 @@
+.DS_Store
+.env
+__pycache__/
+*.pyc
+node_modules/
+
+# Separate remote staging areas.
+hf_dataset/**
+!hf_dataset/
+!hf_dataset/**/
+!hf_dataset/**/*.md
+
+hf_bucket/**
+!hf_bucket/
+!hf_bucket/README.md
+
+# Local compatibility aliases for legacy paths.
+abstracts
+runs
+experiments/**/central_run
+experiments/**/runs
+experiments/**/run_*
+!experiments/**/run_pipeline_with_resolver.py
+experiments/5k_eval_2026-04-12/agent_*/audit_pack.json
+experiments/5k_eval_2026-04-12/packs_summary.json
+experiments/ideal_summary_sprint_2026-04-10/agent_*/summaries.jsonl
+experiments/ideal_summary_sprint_2026-04-10/shared_papers_10.jsonl

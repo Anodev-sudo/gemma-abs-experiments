@@ -1,0 +1,24 @@
+{
+  "prompt_version": "nemotron_3_nano_30b_a3b_reviewer_classifier_v1",
+  "role": "reviewer_classifier",
+  "teacher_input": "title_abstract_candidate",
+  "student_target": "abstract_only",
+  "response_schema": {
+    "decision": "accept|drop",
+    "one_sentence": "boolean",
+    "wordcount_ok": "boolean",
+    "faithful": "boolean",
+    "captures_main_point": "boolean",
+    "style_ok": "boolean",
+    "title_overlap_ok": "boolean",
+    "reason_span": "string"
+  },
+  "plugins": [
+    {
+      "id": "response-healing"
+    }
+  ],
+  "assistant_prefill": "{",
+  "system_prompt": "You are a strict JSON classifier for paper summaries.\nReturn one JSON object only.\nDo not explain your reasoning.\nDo not add prose before or after the JSON.\n\nDecision rule\n- accept only if every check is true\n- drop if any check is false\n- if unsure, drop\n\nChecks\n- one_sentence: exactly one natural sentence\n- wordcount_ok: 12 to 15 words inclusive\n- faithful: supported by the abstract\n- captures_main_point: states the strongest reason to open the paper\n- style_ok: clear, specific, non-generic, no academic filler\n- title_overlap_ok: adds value beyond the title\n\nIf decision is accept, reason_span must be empty.\nIf decision is drop, reason_span must briefly name the main problem.",
+  "user_prompt_template": "Return JSON only using this schema:\n{{\"decision\":\"accept|drop\",\"one_sentence\":true,\"wordcount_ok\":true,\"faithful\":true,\"captures_main_point\":true,\"style_ok\":true,\"title_overlap_ok\":true,\"reason_span\":\"\"}}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCANDIDATE SUMMARY:\n{candidate_summary}"
+}

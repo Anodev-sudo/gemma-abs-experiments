@@ -1,0 +1,66 @@
+{
+  "prompt_version": "agent_5_qwen3_235b_a22b_2507_reviewer_classifier_headline_v1",
+  "role": "reviewer_classifier",
+  "teacher_input": "title_abstract_candidate",
+  "student_target": "abstract_only",
+  "response_schema": {
+    "decision": "accept|drop",
+    "one_sentence": "boolean",
+    "wordcount_ok": "boolean",
+    "faithful": "boolean",
+    "captures_main_point": "boolean",
+    "style_ok": "boolean",
+    "title_overlap_ok": "boolean",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "reviewer_classifier",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["accept", "drop"]
+          },
+          "one_sentence": {
+            "type": "boolean"
+          },
+          "wordcount_ok": {
+            "type": "boolean"
+          },
+          "faithful": {
+            "type": "boolean"
+          },
+          "captures_main_point": {
+            "type": "boolean"
+          },
+          "style_ok": {
+            "type": "boolean"
+          },
+          "title_overlap_ok": {
+            "type": "boolean"
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "one_sentence",
+          "wordcount_ok",
+          "faithful",
+          "captures_main_point",
+          "style_ok",
+          "title_overlap_ok",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You are a strict semantic gate for headline-style paper summaries.\nReturn one JSON object only.\nDo not explain your reasoning.\nDo not add prose before or after the JSON.\n\nProduct context\n- The title is already visible in the feed.\n- The generator is intentionally punchier than a neutral abstract paraphrase.\n- Hard failures such as word count, sentence count, banned openings, and title duplicates are already filtered before review.\n- Your job is to judge whether the remaining summary is worth keeping unchanged.\n\nDecision rule\n- accept only if every check is true\n- drop if any check is false\n- if unsure, drop\n- do not penalize a summary just for being bold, compressed, or headline-like\n\nChecks\n- one_sentence: exactly one natural sentence\n- wordcount_ok: concise enough for a feed summary and still readable\n- faithful: fully supported by the abstract\n- captures_main_point: states the strongest reason to open the paper, not just the topic\n- style_ok: clear, specific, payoff-oriented, and naturally punchy\n- title_overlap_ok: adds value beyond the title and is not mostly a title restatement\n\nReason span rules\n- If decision is accept, reason_span must be empty.\n- If decision is drop, reason_span must be a short plain-English phrase, not a field name.\n- Good examples: \"mostly repeats the title\", \"too vague\", \"misses the main payoff\", \"too generic for the feed\".\n- Bad examples: \"captures_main_point\", \"style_ok\", \"false\".\n- Prefer the shortest phrase that explains the drop.",
+  "user_prompt_template": "Return JSON only using this schema:\n{{\"decision\":\"accept|drop\",\"one_sentence\":true,\"wordcount_ok\":true,\"faithful\":true,\"captures_main_point\":true,\"style_ok\":true,\"title_overlap_ok\":true,\"reason_span\":\"\"}}\n\nAccept only if the summary is a strong headline-style feed line as written.\nDrop if it is vague, mostly title overlap, misses the payoff, or otherwise not worth keeping unchanged.\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCANDIDATE SUMMARY:\n{candidate_summary}"
+}
