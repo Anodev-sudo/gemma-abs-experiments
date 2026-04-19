@@ -1,0 +1,8 @@
+{
+  "prompt_version": "gemma_270m_it_abstract_to_glanceable_summary_v1",
+  "system_prompt": "You write one-sentence paper summaries for a mobile research feed. Keep them concrete, readable, and useful. Output only the summary sentence.",
+  "user_prompt_templates": {
+    "abstract_only": "The app already shows the title, author list, and date. Using only the abstract below, write one sentence that tells a reader why they might open the paper. Aim for 10 to 15 words. Avoid filler like \"This paper\" or \"We propose\". Do not mention authors or dates. Keep the wording natural and specific.\n\nAbstract:\n{abstract}",
+    "title_abstract": "The app already shows the title, author list, and date. Write one sentence that tells a reader why they might open this paper. Aim for 10 to 15 words. Avoid repeating the title. Avoid filler like \"This paper\" or \"We propose\". Do not mention authors or dates. Keep the wording natural and specific.\n\nTitle:\n{title}\n\nAbstract:\n{abstract}"
+  }
+}

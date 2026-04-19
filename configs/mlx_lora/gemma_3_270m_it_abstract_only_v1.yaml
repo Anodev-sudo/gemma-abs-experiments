@@ -1,0 +1,79 @@
+# MLX LoRA config for Gemma 3 270M IT on the reviewed 5k pilot dataset.
+# Run with:
+#   python3 -m mlx_lm.lora --config configs/mlx_lora/gemma_3_270m_it_abstract_only_v1.yaml --mask-prompt
+
+# The path to the local model directory or Hugging Face repo.
+model: "google/gemma-3-270m-it"
+
+# Whether or not to train (boolean)
+train: true
+
+# The fine-tuning method: "lora", "dora", or "full".
+fine_tune_type: lora
+
+# The optimizer.
+optimizer: adamw
+
+# Directory with {train, valid, test}.jsonl files.
+data: "hf_dataset/releases/recent_3y_balanced_5000_pilot_v2/mlx_lora/abstract_only_chat_gemma_270m_it_abstract_to_glanceable_summary_v1"
+
+# The PRNG seed.
+seed: 20260417
+
+# Gemma 3 270M has 18 transformer blocks, so this tunes all of them.
+num_layers: 18
+
+# Minibatch size.
+batch_size: 8
+
+# Iterations to train for. With 4047 train rows and batch size 8, 1500 steps is
+# just under 3 passes through the train split.
+iters: 1500
+
+# Number of validation batches, -1 uses the entire validation set.
+val_batches: -1
+
+# Adam learning rate.
+learning_rate: 1e-5
+
+# Number of training steps between loss reporting.
+steps_per_report: 10
+
+# Number of training steps between validations.
+steps_per_eval: 100
+
+# Number of micro-steps to accumulate before each optimizer update.
+grad_accumulation_steps: 1
+
+# Load path to resume training with the given adapter weights.
+resume_adapter_file: null
+
+# Save/load path for the trained adapter weights.
+adapter_path: "hf_bucket/experiments/mlx_lora/gemma_3_270m_it_abstract_only_v1/adapters"
+
+# Save the adapters every N iterations.
+save_every: 100
+
+# Evaluate on the test set after training.
+test: true
+
+# Number of test set batches, -1 uses the entire test set.
+test_batches: -1
+
+# Keep the training window modest because the abstract-only prompt format here is
+# much shorter than the model maximum and shorter sequences reduce memory use.
+max_seq_length: 1024
+
+# Use gradient checkpointing to reduce memory use.
+grad_checkpoint: false
+
+lora_parameters:
+  # Apply LoRA to the main attention projections in every tuned block.
+  keys:
+    - "self_attn.q_proj"
+    - "self_attn.k_proj"
+    - "self_attn.v_proj"
+    - "self_attn.o_proj"
+  rank: 16
+  scale: 10.0
+  dropout: 0.0
