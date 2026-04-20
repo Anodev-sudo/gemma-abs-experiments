@@ -11,6 +11,11 @@ Current prompt spec:
   - Default student input: `abstract_only`
   - Goal: teach the model to produce one-sentence, feed-appropriate paper summaries
     without dragging title text, authors, or date metadata into the output
+- `gemma_270m_it_summary_correction_v1.json`
+  - Intended model family: small instruction-tuned Gemma variants
+  - Default dataset format: `chat`
+  - Goal: teach a second-stage correction pass that rewrites a close-but-wrong draft
+    into a better one-sentence feed summary
 
 Design notes:
 
@@ -18,6 +23,8 @@ Design notes:
   the student should learn `abstract -> summary`.
 - `title_abstract` is included as an explicit alternate path in case the deployment
   prompt later changes.
+- The correction prompt is kept separate so hard-negative experiments can train a
+  stage-two repair dataset without changing the main title/abstract summary prompt.
 - The prompt stays short on purpose. The source rows already encode the target style,
   so the prep prompt should mainly preserve the mobile-feed framing and output shape.
 

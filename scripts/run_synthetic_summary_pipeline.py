@@ -17,6 +17,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+import synthetic_summary_runtime as runtime
+
 DEFAULT_INPUT_JSONL = "hf_dataset/corpora/recent_3y_balanced/arxiv_abstract_corpus_weighted_20000.jsonl"
 DEFAULT_GENERATOR_PROMPT = "prompts/synthetic_summary/deepseek_v32_generator_v5_hybrid_sentence_case_minimal.json"
 DEFAULT_REVIEWER_PROMPT = "prompts/synthetic_summary/qwen3_235b_a22b_2507_reviewer_classifier_v2_headline_baseline.json"
@@ -784,6 +786,28 @@ def iter_bounded_futures(
                 item = items[next_index]
                 pending[executor.submit(submit_func, item)] = (next_index, item)
                 next_index += 1
+
+
+# Keep the runner behavior stable while using the shared runtime as the canonical
+# implementation for builder and pipeline utility helpers.
+load_dotenv = runtime.load_dotenv
+load_jsonl = runtime.load_jsonl
+write_jsonl = runtime.write_jsonl
+append_jsonl_row = runtime.append_jsonl_row
+load_prompt_spec = runtime.load_prompt_spec
+render_prompt = runtime.render_prompt
+build_messages = runtime.build_messages
+extract_json_object = runtime.extract_json_object
+request_json_with_retries = runtime.request_json_with_retries
+normalize_text = runtime.normalize_text
+word_tokens = runtime.word_tokens
+word_count = runtime.word_count
+sentence_count = runtime.sentence_count
+title_overlap_ratio = runtime.title_overlap_ratio
+summary_flags = runtime.summary_flags
+local_filter_flags = runtime.local_filter_flags
+local_filter_reason = runtime.local_filter_reason
+iter_bounded_futures = runtime.iter_bounded_futures
 
 
 def generate_candidate_request(

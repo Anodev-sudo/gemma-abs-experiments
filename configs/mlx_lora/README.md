@@ -17,6 +17,12 @@ Current configs:
   - Student input: `title_abstract`
   - Goal: current preferred setup when the student should explicitly see the
     title during fine-tuning
+- `gemma_3_270m_it_title_abstract_attn_mlp_v1.yaml`
+  - Base model: `google/gemma-3-270m-it`
+  - Dataset: reviewed 5k pilot release, converted to MLX `chat` format
+  - Student input: `title_abstract`
+  - Goal: isolate whether broadening LoRA targets from attention-only to
+    attention + MLP reduces the remaining semantic failure modes
 - `gemma_3_1b_it_title_abstract_v1.yaml`
   - Base model: `google/gemma-3-1b-it`
   - Dataset: reviewed 5k pilot release, converted to MLX `chat` format
@@ -55,6 +61,14 @@ Train with:
 ```bash
 python3 -m mlx_lm.lora \
   --config configs/mlx_lora/gemma_3_270m_it_title_abstract_v1.yaml \
+  --mask-prompt
+```
+
+For the next 270M attention + MLP comparison run:
+
+```bash
+python3 -m mlx_lm.lora \
+  --config configs/mlx_lora/gemma_3_270m_it_title_abstract_attn_mlp_v1.yaml \
   --mask-prompt
 ```
 

@@ -1,0 +1,51 @@
+{
+  "prompt_version": "qwen3_235b_a22b_2507_hard_negative_verifier_v1",
+  "role": "negative_verifier",
+  "teacher_input": "title_abstract_gold_bad_axis",
+  "student_target": "verification_only",
+  "response_schema": {
+    "valid_negative": "boolean",
+    "failure_axis_matches": "boolean",
+    "single_axis_only": "boolean",
+    "still_feed_style": "boolean",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "hard_negative_verifier_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valid_negative": {
+            "type": "boolean"
+          },
+          "failure_axis_matches": {
+            "type": "boolean"
+          },
+          "single_axis_only": {
+            "type": "boolean"
+          },
+          "still_feed_style": {
+            "type": "boolean"
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "valid_negative",
+          "failure_axis_matches",
+          "single_axis_only",
+          "still_feed_style",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You verify hard negatives for a one-sentence paper-summary correction dataset.\nReturn one JSON object only.\n\nAccept a negative only if all of these are true:\n- It is actually wrong for the requested axis.\n- It is otherwise close to a plausible mobile-feed sentence.\n- It is not broken in several ways at once.\n- It differs meaningfully from the gold summary.\n\nJudging guidance\n- valid_negative should be true only when every other check is true.\n- failure_axis_matches means the requested axis is the real problem.\n- single_axis_only means the summary is not also generic, malformed, title-restating, or wrong in several semantic ways at once.\n- still_feed_style means it still reads like a concise feed sentence.\n\nReason span rules\n- Leave reason_span empty when valid_negative is true.\n- Otherwise use a short plain-English phrase such as \"multiple semantic errors\" or \"requested axis does not match\".",
+  "user_prompt_template": "Return JSON only using this schema:\n{{\"valid_negative\":true,\"failure_axis_matches\":true,\"single_axis_only\":true,\"still_feed_style\":true,\"reason_span\":\"\"}}\n\nREQUESTED FAILURE AXIS:\n{failure_axis}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nGOLD SUMMARY:\n{gold_summary}\n\nBAD SUMMARY:\n{candidate_summary}"
+}
+

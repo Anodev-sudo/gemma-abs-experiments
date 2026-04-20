@@ -1,0 +1,103 @@
+[
+  {
+    "paper_id": "2305.13029",
+    "source_pool": "holdout_review_100",
+    "preferred_axes": [
+      "wrong_number_binding",
+      "invented_number"
+    ],
+    "candidate_summary_source": "tuned_summary",
+    "notes": "Quantitatively dense abstract where the tuned summary fused distinct numeric claims."
+  },
+  {
+    "paper_id": "2510.10676",
+    "source_pool": "holdout_review_100",
+    "preferred_axes": [
+      "wrong_number_binding",
+      "invented_number"
+    ],
+    "candidate_summary_source": "tuned_summary",
+    "notes": "Multiple closely related metrics make this useful for number-to-metric swaps."
+  },
+  {
+    "paper_id": "2411.14026",
+    "source_pool": "holdout_review_100",
+    "preferred_axes": [
+      "wrong_number_binding",
+      "invented_number"
+    ],
+    "candidate_summary_source": "tuned_summary",
+    "notes": "Upper-limit reporting is a good stress case for numeric corruption."
+  },
+  {
+    "paper_id": "2305.08009",
+    "source_pool": "holdout_review_100",
+    "preferred_axes": [
+      "invented_number",
+      "wrong_number_binding"
+    ],
+    "candidate_summary_source": "tuned_summary",
+    "notes": "The abstract supports qualitative uncertainty reduction, not arbitrary precise percentages."
+  },
+  {
+    "paper_id": "2504.20147",
+    "source_pool": "holdout_review_100",
+    "preferred_axes": [
+      "reversed_polarity",
+      "wrong_entity"
+    ],
+    "candidate_summary_source": "tuned_summary",
+    "notes": "Foreground and obstruction language makes this a clean polarity-flip stress case."
+  },
+  {
+    "paper_id": "2202.03682",
+    "source_pool": "holdout_review_100",
+    "preferred_axes": [
+      "wrong_entity",
+      "reversed_polarity"
+    ],
+    "candidate_summary_source": "tuned_summary",
+    "notes": "Historical causal chain is vulnerable to attaching the claim to the wrong target."
+  },
+  {
+    "paper_id": "2407.21394",
+    "source_pool": "holdout_review_100",
+    "preferred_axes": [
+      "wrong_entity",
+      "invented_number"
+    ],
+    "candidate_summary_source": "tuned_summary",
+    "notes": "Artery-versus-vein and dataset-size details make this useful for entity and number slips."
+  },
+  {
+    "paper_id": "2402.16631",
+    "source_pool": "holdout_review_100",
+    "preferred_axes": [
+      "wrong_entity",
+      "reversed_polarity"
+    ],
+    "candidate_summary_source": "tuned_summary",
+    "notes": "System-level AI networking paper with multiple interacting actors."
+  },
+  {
+    "paper_id": "2307.08617",
+    "source_pool": "holdout_review_100",
+    "preferred_axes": [
+      "wrong_entity",
+      "reversed_polarity"
+    ],
+    "candidate_summary_source": "tuned_summary",
+    "notes": "Applied climate and agriculture wording gives room for entity swaps and implication flips."
+  },
+  {
+    "paper_id": "2406.15241",
+    "source_pool": "holdout_review_100",
+    "preferred_axes": [
+      "wrong_entity",
+      "invented_number"
+    ],
+    "candidate_summary_source": "tuned_summary",
+    "notes": "Method-plus-task framing is useful for subtle subject or metric drift."
+  }
+]
+

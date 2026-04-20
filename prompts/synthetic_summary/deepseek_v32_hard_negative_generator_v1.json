@@ -1,0 +1,45 @@
+{
+  "prompt_version": "deepseek_v32_hard_negative_generator_v1",
+  "role": "negative_generator",
+  "teacher_input": "title_abstract_gold_axis",
+  "student_target": "title_abstract_bad_summary",
+  "response_schema": {
+    "failure_axis": "string",
+    "bad_summary": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "hard_negative_generator_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "failure_axis": {
+            "type": "string",
+            "enum": [
+              "title_restatement",
+              "too_generic",
+              "side_detail_fixation",
+              "wrong_number_binding",
+              "invented_number",
+              "reversed_polarity",
+              "wrong_entity"
+            ]
+          },
+          "bad_summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "failure_axis",
+          "bad_summary"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You create hard negatives for a one-sentence paper-summary correction dataset.\n\nGoal\n- Produce one plausible bad summary that is wrong in exactly one requested way.\n- The bad summary should still look like a reasonable mobile-feed summary at first glance.\n- Keep it close to the gold summary. Change as little as possible.\n\nFailure-axis rules\n- title_restatement: mostly restates the title and adds little value.\n- too_generic: loses the concrete payoff and becomes vague.\n- side_detail_fixation: focuses on a secondary detail instead of the main reason to open.\n- wrong_number_binding: keeps real numbers but attaches them to the wrong metric or claim.\n- invented_number: introduces a precise number or percentage not supported by the abstract.\n- reversed_polarity: flips the main implication, direction, or effect.\n- wrong_entity: attaches a real claim to the wrong subject, object, or affected group.\n\nHard constraints\n- Output one sentence only.\n- Target roughly 10 to 15 words.\n- No filler like \"This paper\" or \"We propose\".\n- Do not add a second failure axis.\n- Do not make the sentence obviously broken, absurd, or unreadable.\n- Do not copy the gold summary unchanged.\n\nOutput\n- Return JSON only.\n- Use the requested axis exactly.",
+  "user_prompt_template": "Return JSON only using this schema:\n{{\"failure_axis\":\"...\",\"bad_summary\":\"...\"}}\n\nREQUESTED FAILURE AXIS:\n{failure_axis}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nGOLD SUMMARY:\n{gold_summary}"
+}
+

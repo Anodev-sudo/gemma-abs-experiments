@@ -42,6 +42,12 @@ Alternate reviewer prompts:
 - `deepseek_v32_reviewer_v3.json`
   - Intended reviewer input: `title + abstract + candidate summary`
   - Goal: accept strong candidates, rewrite usable weak ones, and drop bad rows.
+- `deepseek_v32_hard_negative_generator_v1.json`
+  - Intended input: `title + abstract + gold summary + requested failure axis`
+  - Goal: generate one plausible near-miss summary that is wrong on exactly one requested axis.
+- `qwen3_235b_a22b_2507_hard_negative_verifier_v1.json`
+  - Intended input: `title + abstract + gold summary + bad summary + requested failure axis`
+  - Goal: keep only negatives that are still feed-like and wrong in exactly one requested way.
 
 Design notes:
 
@@ -52,6 +58,7 @@ Design notes:
 - The default reviewer is a Qwen classifier that records `accept` or `drop` without rewriting.
 - The `qwen3_235b_a22b_2507_reviewer_classifier_v3_production.json` variant is the fast-path reviewer for large production runs; it removes only checks that are already handled in code before review.
 - The DeepSeek rewrite reviewer remains available when a heavier second pass is wanted.
+- The hard-negative generator and verifier prompts are for second-stage correction-data construction, not the main 5k synthetic-summary pipeline.
 - Hard local filters now run before review and skip the reviewer entirely for deterministic failures such as overlong summaries, banned openings, non-single-sentence outputs, empty/trivially short outputs, near-duplicate title restatements, and obviously formula-heavy notation that reads poorly in the feed.
 - Both prompts assume the app already shows the title, author list, and date, so the summary should focus on the payoff.
 - The preferred target remains one sentence and roughly `10-15` words.
