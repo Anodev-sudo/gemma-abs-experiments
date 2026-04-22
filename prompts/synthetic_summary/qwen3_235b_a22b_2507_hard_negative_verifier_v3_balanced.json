@@ -1,0 +1,106 @@
+{
+  "prompt_version": "qwen3_235b_a22b_2507_hard_negative_verifier_v3_balanced",
+  "role": "negative_verifier",
+  "teacher_input": "title_abstract_gold_bad_axis",
+  "student_target": "verification_only",
+  "response_schema": {
+    "valid_negative": "boolean",
+    "needs_correction": "boolean",
+    "failure_axis_matches": "boolean",
+    "best_matching_axis": "string",
+    "other_major_issue_axes": "string[]",
+    "single_axis_only": "boolean",
+    "still_true_to_source": "boolean",
+    "meaningfully_differs_from_gold": "boolean",
+    "still_feed_style": "boolean",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "hard_negative_verifier_v3_balanced",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valid_negative": {
+            "type": "boolean"
+          },
+          "needs_correction": {
+            "type": "boolean"
+          },
+          "failure_axis_matches": {
+            "type": "boolean"
+          },
+          "best_matching_axis": {
+            "type": "string",
+            "enum": [
+              "title_restatement",
+              "too_generic",
+              "side_detail_fixation",
+              "wrong_number_binding",
+              "invented_number",
+              "reversed_polarity",
+              "wrong_entity",
+              "too_long",
+              "too_short",
+              "not_single_sentence",
+              "formula_heavy",
+              "none"
+            ]
+          },
+          "other_major_issue_axes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "title_restatement",
+                "too_generic",
+                "side_detail_fixation",
+                "wrong_number_binding",
+                "invented_number",
+                "reversed_polarity",
+                "wrong_entity",
+                "too_long",
+                "too_short",
+                "not_single_sentence",
+                "formula_heavy"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "single_axis_only": {
+            "type": "boolean"
+          },
+          "still_true_to_source": {
+            "type": "boolean"
+          },
+          "meaningfully_differs_from_gold": {
+            "type": "boolean"
+          },
+          "still_feed_style": {
+            "type": "boolean"
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "valid_negative",
+          "needs_correction",
+          "failure_axis_matches",
+          "best_matching_axis",
+          "other_major_issue_axes",
+          "single_axis_only",
+          "still_true_to_source",
+          "meaningfully_differs_from_gold",
+          "still_feed_style",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You verify hard negatives for a one-sentence paper-summary correction dataset.\nReturn one JSON object only.\n\nAccept a negative only if all of these are true:\n- It clearly needs correction, not just a stylistic rewrite.\n- The requested failure axis is the single best label.\n- It differs meaningfully from the gold summary.\n- It still reads like a concise mobile-feed sentence.\n- It is not bad in several major ways at once.\n- For semantic wrongness axes, it is not still materially supported by the title and abstract.\n\nAxis guidance\n- title_restatement: mostly repackages title-level information and adds little value beyond the title.\n- too_generic: loses the concrete hook, object, or payoff that made the gold summary worth opening.\n- side_detail_fixation: pivots onto a real but secondary detail while missing the main reason to open.\n- wrong_number_binding: reuses a real source number but binds it to the wrong metric, entity, or outcome.\n- invented_number: introduces a precise number or percentage unsupported by the title, abstract, and gold summary.\n- reversed_polarity: flips the main implication, direction, or effect.\n- wrong_entity: keeps roughly the same claim shape but assigns it to the wrong subject, object, domain, or affected group.\n\nField guidance\n- valid_negative: true only when every required acceptance condition is satisfied.\n- needs_correction: true only when this should be corrected in the final dataset.\n- failure_axis_matches: true only when the requested axis is the main reason it needs correction.\n- best_matching_axis: choose the single best label; use none only if no label clearly fits.\n- other_major_issue_axes: list any additional substantial issue axes besides the best one; otherwise return [].\n- single_axis_only: true only when there is no other major issue besides the main axis.\n- still_true_to_source: true when the bad summary remains materially supported by the title and abstract.\n- meaningfully_differs_from_gold: true when the difference from the gold summary is large enough to teach a correction.\n- still_feed_style: true when it still sounds like a concise feed sentence.\n- Keep the coordination fields logically consistent: if best_matching_axis equals the requested axis, failure_axis_matches should usually be true; if every acceptance condition is satisfied, valid_negative should be true.\n\nAxis-specific checks\n- For title_restatement, reject if the candidate still preserves most of the gold summary's concrete payoff or adds clear value beyond the title.\n- For too_generic, reject if the candidate is still a crisp specific claim and mainly differs by lighter wording or one dropped detail.\n- For side_detail_fixation, reject if it is still basically an acceptable main-point summary, or if it mainly just trims a clause from the gold summary.\n- For wrong_number_binding, reject if the number is newly invented, if it merely appends a true year or date, or if the full number-bearing phrase is already supported by the source.\n- For invented_number, reject if any explicit number is source-supported.\n- For wrong_entity, reject if the candidate rewrites too much of the original claim or drifts into multiple semantic changes.\n\nImportant nuance\n- title_restatement, too_generic, and side_detail_fixation can remain partly true to the source, but they should still be clearly worse than the gold summary and should not be acceptable final feed summaries.\n- wrong_number_binding, invented_number, reversed_polarity, and wrong_entity should usually have still_true_to_source = false.\n\nReason span rules\n- Leave reason_span empty when valid_negative is true.\n- Otherwise use a short plain-English phrase such as \"still acceptable as written\", \"best axis is too_generic\", \"reused source number\", or \"too close to gold summary\".",
+  "user_prompt_template": "Return JSON only using this schema:\n{{\"valid_negative\":true,\"needs_correction\":true,\"failure_axis_matches\":true,\"best_matching_axis\":\"wrong_number_binding\",\"other_major_issue_axes\":[],\"single_axis_only\":true,\"still_true_to_source\":false,\"meaningfully_differs_from_gold\":true,\"still_feed_style\":true,\"reason_span\":\"\"}}\n\nREQUESTED FAILURE AXIS:\n{failure_axis}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nGOLD SUMMARY:\n{gold_summary}\n\nBAD SUMMARY:\n{candidate_summary}"
+}

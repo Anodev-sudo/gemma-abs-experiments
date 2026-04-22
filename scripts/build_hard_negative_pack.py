@@ -35,10 +35,10 @@ DEFAULT_HOLDOUT_REVIEW_JSONL = (
 )
 DEFAULT_SEED_PAPERS_JSON = "experiments/hard_negative_pack_v1/semantic_seed_papers_v1.json"
 DEFAULT_NEGATIVE_GENERATOR_PROMPT = (
-    "prompts/synthetic_summary/deepseek_v32_hard_negative_generator_v1.json"
+    "prompts/synthetic_summary/deepseek_v32_hard_negative_generator_v2_precision.json"
 )
 DEFAULT_NEGATIVE_VERIFIER_PROMPT = (
-    "prompts/synthetic_summary/qwen3_235b_a22b_2507_hard_negative_verifier_v1.json"
+    "prompts/synthetic_summary/qwen3_235b_a22b_2507_hard_negative_verifier_v6_precision_numeric.json"
 )
 DEFAULT_GOLD_REWRITE_PROMPT = "prompts/synthetic_summary/deepseek_v32_reviewer_v3.json"
 DEFAULT_GOLD_VERIFIER_PROMPT = (
@@ -50,7 +50,7 @@ DEFAULT_GENERATOR_MODEL = "deepseek/deepseek-v3.2"
 DEFAULT_VERIFIER_MODEL = "qwen/qwen3-235b-a22b-2507"
 DEFAULT_GOLD_MODEL = "deepseek/deepseek-v3.2"
 DEFAULT_GENERATION_MAX_OUTPUT_TOKENS = 64
-DEFAULT_VERIFICATION_MAX_OUTPUT_TOKENS = 64
+DEFAULT_VERIFICATION_MAX_OUTPUT_TOKENS = 96
 DEFAULT_GOLD_MAX_OUTPUT_TOKENS = 96
 DEFAULT_REQUEST_TIMEOUT = 120
 DEFAULT_MAX_RETRIES = 4
@@ -59,6 +59,12 @@ DEFAULT_VALID_RATIO = 0.05
 DEFAULT_TEST_RATIO = 0.05
 DEFAULT_SEED = 20260420
 DEFAULT_ATTEMPT_MULTIPLIER = 3
+AXIS_GENERATION_ATTEMPT_MULTIPLIER: dict[str, int] = {
+    "invented_number": 8,
+    "side_detail_fixation": 5,
+    "wrong_number_binding": 5,
+    "wrong_entity": 5,
+}
 
 MINED_FIRST_AXES = (
     "title_restatement",
@@ -79,7 +85,109 @@ STRUCTURAL_AXES = (
     "formula_heavy",
 )
 ALL_KNOWN_AXES = ALL_AXES + STRUCTURAL_AXES
-AXIS_NEEDS_DIGITS = {"wrong_number_binding", "invented_number"}
+AXIS_REQUIRES_SOURCE_NUMBERS = {"wrong_number_binding"}
+AXIS_NUMERIC_POSTCHECKS = {"wrong_number_binding", "invented_number"}
+REGENERATED_MINED_AXES = ("side_detail_fixation",)
+SEMANTIC_AXES = frozenset(GENERATED_FIRST_AXES)
+DERIVED_SEMANTIC_SOURCE_AXES = ("too_generic", "side_detail_fixation")
+DERIVED_SEMANTIC_TARGET_AXES = ("reversed_polarity", "wrong_entity")
+GENERATED_AXIS_SOURCE_PRIORITY: dict[str, dict[str, int]] = {
+    "wrong_number_binding": {
+        "release_training": 0,
+        "holdout_review_100": 1,
+    },
+    "invented_number": {
+        "holdout_review_100": 0,
+        "release_training": 1,
+    },
+    "reversed_polarity": {
+        "derived_mined_semantic": 0,
+        "holdout_review_100": 1,
+        "release_training": 2,
+    },
+    "wrong_entity": {
+        "derived_mined_semantic": 0,
+        "holdout_review_100": 1,
+        "release_training": 2,
+    },
+}
+AXIS_DETAIL_STOPWORDS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "are",
+        "as",
+        "at",
+        "be",
+        "but",
+        "by",
+        "for",
+        "from",
+        "has",
+        "have",
+        "in",
+        "into",
+        "is",
+        "it",
+        "its",
+        "of",
+        "on",
+        "or",
+        "that",
+        "the",
+        "their",
+        "this",
+        "to",
+        "using",
+        "via",
+        "with",
+    }
+)
+TOKEN_STRIP_CHARS = ".,;:!?()[]{}<>\"'`“”‘’"
+YEAR_LIKE_RE = re.compile(r"^(?:18|19|20)\d{2}$")
+FORMULA_LIKE_NUMBER_RE = re.compile(r"(?:\^|=|<=|>=|!=|\([^)]*\d[^)]*\)|\b\d+\s*/\s*\w)")
+SCIENTIFIC_NOTATION_RE = re.compile(r"^\d+(?:\.\d+)?e[+-]?\d+$", re.IGNORECASE)
+NUMBER_WORD_TO_CANONICAL = {
+    "zero": "0",
+    "one": "1",
+    "two": "2",
+    "three": "3",
+    "four": "4",
+    "five": "5",
+    "six": "6",
+    "seven": "7",
+    "eight": "8",
+    "nine": "9",
+    "ten": "10",
+    "eleven": "11",
+    "twelve": "12",
+    "thirteen": "13",
+    "fourteen": "14",
+    "fifteen": "15",
+    "sixteen": "16",
+    "seventeen": "17",
+    "eighteen": "18",
+    "nineteen": "19",
+    "twenty": "20",
+    "thirty": "30",
+    "forty": "40",
+    "fifty": "50",
+    "sixty": "60",
+    "seventy": "70",
+    "eighty": "80",
+    "ninety": "90",
+    "first": "1",
+    "second": "2",
+    "third": "3",
+    "fourth": "4",
+    "fifth": "5",
+    "sixth": "6",
+    "seventh": "7",
+    "eighth": "8",
+    "ninth": "9",
+    "tenth": "10",
+}
 
 
 def parse_axis_list(raw_value: str | None, default_axes: tuple[str, ...]) -> list[str]:
@@ -90,6 +198,32 @@ def parse_axis_list(raw_value: str | None, default_axes: tuple[str, ...]) -> lis
     if unknown:
         raise ValueError(f"Unknown failure axes: {', '.join(unknown)}")
     return axes
+
+
+def generation_attempt_cap(axis: str, needed: int) -> int:
+    multiplier = AXIS_GENERATION_ATTEMPT_MULTIPLIER.get(axis, DEFAULT_ATTEMPT_MULTIPLIER)
+    return max(needed * multiplier, needed)
+
+
+def training_fallback_sort_key(axis: str, row: dict[str, Any]) -> tuple[Any, ...]:
+    title_text = str(row.get("title", ""))
+    abstract_text = str(row.get("abstract", ""))
+    summary_text = str(row.get("summary", ""))
+    source_text = " ".join([title_text, abstract_text, summary_text])
+    numeric_count = len(extract_numeric_mentions(source_text))
+    summary_numeric_count = len(meaningful_numeric_mentions(summary_text))
+    source_numeric_count = len(meaningful_numeric_mentions(" ".join([title_text, abstract_text])))
+    if axis == "invented_number":
+        return (
+            0 if summary_numeric_count == 0 else 1,
+            summary_numeric_count,
+            -source_numeric_count,
+            numeric_count,
+            str(row.get("paper_id", "")),
+        )
+    if axis == "wrong_number_binding":
+        return (-numeric_count, str(row.get("paper_id", "")))
+    return (str(row.get("paper_id", "")),)
 
 
 def parse_args() -> argparse.Namespace:
@@ -258,6 +392,574 @@ def load_correction_prompt_spec(path: Path) -> dict[str, Any]:
 
 def contains_digit(value: str) -> bool:
     return bool(re.search(r"\d", value))
+
+
+def normalize_axis_name(value: Any) -> str:
+    axis = normalize_text(str(value)).casefold()
+    if axis in ALL_KNOWN_AXES or axis == "none":
+        return axis
+    return ""
+
+
+def normalize_axis_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in value:
+        axis = normalize_axis_name(item)
+        if not axis or axis == "none" or axis in seen:
+            continue
+        normalized.append(axis)
+        seen.add(axis)
+    return normalized
+
+
+def axis_word_tokens(value: str) -> list[str]:
+    return re.findall(r"[A-Za-z0-9]+(?:[-'][A-Za-z0-9]+)?", normalize_text(value).casefold())
+
+
+def axis_content_tokens(value: str) -> list[str]:
+    return [
+        token
+        for token in axis_word_tokens(value)
+        if token not in AXIS_DETAIL_STOPWORDS and not token.isdigit()
+    ]
+
+
+def shared_prefix_length(left: list[str], right: list[str]) -> int:
+    count = 0
+    for left_token, right_token in zip(left, right):
+        if left_token != right_token:
+            break
+        count += 1
+    return count
+
+
+def shared_suffix_length(left: list[str], right: list[str]) -> int:
+    count = 0
+    for left_token, right_token in zip(reversed(left), reversed(right)):
+        if left_token != right_token:
+            break
+        count += 1
+    return count
+
+
+def overlap_ratio(left: set[str], right: set[str]) -> float:
+    union = left | right
+    if not union:
+        return 0.0
+    return len(left & right) / len(union)
+
+
+def coverage_ratio(source: set[str], reference: set[str]) -> float:
+    if not source or not reference:
+        return 0.0
+    return len(source & reference) / len(source)
+
+
+def rough_tokens(value: str) -> list[str]:
+    tokens: list[str] = []
+    for raw in normalize_text(value).split():
+        token = raw.strip(TOKEN_STRIP_CHARS)
+        if token:
+            tokens.append(token)
+    return tokens
+
+
+def canonical_numeric_token(token: str) -> str | None:
+    cleaned = token.casefold().strip(TOKEN_STRIP_CHARS).replace(",", "")
+    if not cleaned:
+        return None
+    ordinal_match = re.fullmatch(r"(\d+)(?:st|nd|rd|th)", cleaned)
+    if ordinal_match:
+        return ordinal_match.group(1)
+    mapped = NUMBER_WORD_TO_CANONICAL.get(cleaned)
+    if mapped is not None:
+        return mapped
+    if re.fullmatch(r"\d+(?:\.\d+)?%?", cleaned):
+        return cleaned
+    numeric_prefix_match = re.match(r"(\d+(?:\.\d+)?(?:-\d+(?:\.\d+)?)?%?)", cleaned)
+    if numeric_prefix_match:
+        return numeric_prefix_match.group(1)
+    if any(char.isdigit() for char in cleaned):
+        return cleaned
+    return None
+
+
+def extract_numeric_mentions(value: str) -> list[dict[str, Any]]:
+    tokens = rough_tokens(value)
+    mentions: list[dict[str, Any]] = []
+    for index, token in enumerate(tokens):
+        canonical = canonical_numeric_token(token)
+        if canonical is None:
+            continue
+        phrase_variants: set[str] = set()
+        for left in range(max(0, index - 2), index + 1):
+            for right in range(index + 1, min(len(tokens), index + 3) + 1):
+                phrase_tokens = tokens[left:right]
+                if len(phrase_tokens) < 3:
+                    continue
+                phrase_variants.add(normalize_text(" ".join(phrase_tokens)).casefold())
+        mentions.append(
+            {
+                "canonical": canonical,
+                "raw": token,
+                "phrase_variants": sorted(phrase_variants),
+            }
+        )
+    return mentions
+
+
+def numeric_token_set(value: str) -> set[str]:
+    return {mention["canonical"] for mention in extract_numeric_mentions(value)}
+
+
+def tokenized_meaningful_numeric_mentions(value: str) -> list[dict[str, Any]]:
+    tokens = normalize_text(value).split()
+    mentions: list[dict[str, Any]] = []
+    for index, token in enumerate(tokens):
+        cleaned = token.strip(TOKEN_STRIP_CHARS)
+        canonical = canonical_numeric_token(cleaned)
+        if canonical is None:
+            continue
+        if YEAR_LIKE_RE.fullmatch(str(canonical)):
+            continue
+        if is_formula_like_numeric_text(cleaned):
+            continue
+        mentions.append(
+            {
+                "index": index,
+                "raw": cleaned,
+                "canonical": str(canonical),
+                "prev_token": tokens[index - 1].strip(TOKEN_STRIP_CHARS).casefold()
+                if index > 0
+                else "",
+                "next_token": tokens[index + 1].strip(TOKEN_STRIP_CHARS).casefold()
+                if index + 1 < len(tokens)
+                else "",
+            }
+        )
+    return mentions
+
+
+def numeric_style(raw: str) -> str:
+    cleaned = raw.casefold().strip(TOKEN_STRIP_CHARS).replace(",", "")
+    if not cleaned:
+        return "other"
+    if SCIENTIFIC_NOTATION_RE.fullmatch(cleaned):
+        return "scientific"
+    if cleaned.endswith("%"):
+        return "percent"
+    if cleaned.endswith("x"):
+        return "multiplier"
+    if "-" in cleaned and any(char.isdigit() for char in cleaned):
+        return "range"
+    if cleaned.endswith(("+", "k", "m")):
+        return "compact"
+    if re.fullmatch(r"\d+\.\d+", cleaned):
+        return "decimal"
+    if re.fullmatch(r"\d+", cleaned):
+        return "integer"
+    return "other"
+
+
+def numeric_styles_compatible(receiver_raw: str, donor_raw: str) -> bool:
+    receiver_style = numeric_style(receiver_raw)
+    donor_style = numeric_style(donor_raw)
+    if receiver_style == donor_style:
+        return True
+    scalar_styles = {"integer", "decimal", "compact"}
+    return receiver_style in scalar_styles and donor_style in scalar_styles
+
+
+def structured_wrong_number_binding_candidate(seed_row: dict[str, Any]) -> dict[str, Any] | None:
+    gold_summary = normalize_text(str(seed_row.get("gold_summary", "")))
+    title = str(seed_row.get("title", ""))
+    abstract = str(seed_row.get("abstract", ""))
+    if not gold_summary:
+        return None
+
+    summary_tokens = normalize_text(gold_summary).split()
+    receiver_mentions = tokenized_meaningful_numeric_mentions(gold_summary)
+    if not receiver_mentions:
+        return None
+
+    source_text = " ".join([title, abstract])
+    donor_mentions = tokenized_meaningful_numeric_mentions(source_text)
+    if not donor_mentions:
+        return None
+
+    summary_canonicals = {mention["canonical"] for mention in receiver_mentions}
+    candidate_rows: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
+    seen_summaries: set[str] = set()
+
+    for receiver in receiver_mentions:
+        for donor in donor_mentions:
+            if donor["canonical"] == receiver["canonical"]:
+                continue
+            if numeric_style(donor["raw"]) == "scientific":
+                continue
+            if not numeric_styles_compatible(receiver["raw"], donor["raw"]):
+                continue
+            new_tokens = list(summary_tokens)
+            new_tokens[receiver["index"]] = donor["raw"]
+            bad_summary = normalize_text(" ".join(new_tokens))
+            if not bad_summary or bad_summary == gold_summary:
+                continue
+            if bad_summary in seen_summaries:
+                continue
+            seen_summaries.add(bad_summary)
+            candidate_row = {
+                "paper_id": seed_row["paper_id"],
+                "title": title,
+                "abstract": abstract,
+                "gold_summary": gold_summary,
+                "bad_summary": bad_summary,
+                "failure_axis": "wrong_number_binding",
+            }
+            postcheck_reason = axis_postcheck_reason(candidate_row)
+            if postcheck_reason:
+                continue
+            score = (
+                0 if donor["canonical"] not in summary_canonicals else 1,
+                0 if donor["next_token"] != receiver["next_token"] else 1,
+                0 if donor["prev_token"] != receiver["prev_token"] else 1,
+                abs(len(donor["raw"]) - len(receiver["raw"])),
+                receiver["index"],
+                donor["canonical"],
+            )
+            candidate_rows.append((score, candidate_row))
+
+    if not candidate_rows:
+        return None
+    candidate_rows.sort(key=lambda item: item[0])
+    return candidate_rows[0][1]
+
+
+def seed_summary_text(seed_row: dict[str, Any]) -> str:
+    return normalize_text(
+        str(seed_row.get("gold_summary") or seed_row.get("seed_candidate_summary") or "")
+    )
+
+
+def source_text_for_seed(seed_row: dict[str, Any]) -> str:
+    return " ".join(
+        [
+            str(seed_row.get("title", "")),
+            str(seed_row.get("abstract", "")),
+            seed_summary_text(seed_row),
+        ]
+    )
+
+
+def is_formula_like_numeric_text(value: str) -> bool:
+    text = normalize_text(value)
+    if not text:
+        return False
+    return bool(FORMULA_LIKE_NUMBER_RE.search(text) or "<" in value or ">" in value)
+
+
+def meaningful_numeric_mentions(value: str) -> list[dict[str, Any]]:
+    mentions: list[dict[str, Any]] = []
+    for mention in extract_numeric_mentions(value):
+        canonical = str(mention["canonical"])
+        raw = str(mention["raw"])
+        if YEAR_LIKE_RE.fullmatch(canonical):
+            continue
+        if is_formula_like_numeric_text(raw):
+            continue
+        mentions.append(mention)
+    return mentions
+
+
+def seed_numeric_profile(seed_row: dict[str, Any]) -> dict[str, Any]:
+    summary_text = seed_summary_text(seed_row)
+    source_text = source_text_for_seed(seed_row)
+    source_mentions = meaningful_numeric_mentions(source_text)
+    summary_mentions = meaningful_numeric_mentions(summary_text)
+    source_distinct = {mention["canonical"] for mention in source_mentions}
+    summary_distinct = {mention["canonical"] for mention in summary_mentions}
+    return {
+        "source_distinct_count": len(source_distinct),
+        "summary_distinct_count": len(summary_distinct),
+        "summary_local_flag_count": len(
+            local_filter_flags(summary_text, str(seed_row.get("title", "")))
+        )
+        if summary_text
+        else 0,
+        "summary_formula_like": is_formula_like_numeric_text(summary_text),
+        "has_direct_gold": bool(seed_row.get("gold_summary")),
+    }
+
+
+def seed_row_supports_generated_axis(seed_row: dict[str, Any], axis: str) -> bool:
+    profile = seed_numeric_profile(seed_row)
+    if axis in AXIS_NUMERIC_POSTCHECKS and profile["summary_formula_like"]:
+        return False
+    if axis == "wrong_number_binding":
+        return (
+            profile["summary_distinct_count"] >= 1
+            and profile["source_distinct_count"] >= 2
+        )
+    if axis == "invented_number":
+        return True
+    return True
+
+
+def axis_seed_sort_key(axis: str, seed_row: dict[str, Any]) -> tuple[Any, ...]:
+    source_pool = str(seed_row.get("source_pool", ""))
+    source_priority = GENERATED_AXIS_SOURCE_PRIORITY.get(axis, {}).get(source_pool, 99)
+    paper_id = str(seed_row.get("paper_id", ""))
+    profile = seed_numeric_profile(seed_row)
+    if axis == "invented_number":
+        return (
+            0 if not profile["summary_formula_like"] else 1,
+            0 if profile["summary_distinct_count"] == 0 else 1,
+            source_priority,
+            0 if seed_row.get("gold_summary") else 1,
+            profile["summary_distinct_count"],
+            -profile["source_distinct_count"],
+            paper_id,
+        )
+    if axis == "wrong_number_binding":
+        return (
+            0 if seed_row_supports_generated_axis(seed_row, axis) else 1,
+            0 if profile["has_direct_gold"] else 1,
+            profile["summary_local_flag_count"],
+            source_priority,
+            -profile["summary_distinct_count"],
+            -profile["source_distinct_count"],
+            paper_id,
+        )
+    return (
+        source_priority,
+        0 if seed_row.get("gold_summary") else 1,
+        paper_id,
+    )
+
+
+def order_seed_pool_for_axis(axis: str, pool: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if axis not in AXIS_NUMERIC_POSTCHECKS and axis not in GENERATED_AXIS_SOURCE_PRIORITY:
+        return pool
+    return sorted(pool, key=lambda row: axis_seed_sort_key(axis, row))
+
+
+def find_supported_number_phrase(candidate_summary: str, source_text: str) -> str:
+    source_signature = normalize_text(source_text).casefold()
+    for mention in extract_numeric_mentions(candidate_summary):
+        for phrase in mention["phrase_variants"]:
+            if phrase and phrase in source_signature:
+                return phrase
+    return ""
+
+
+def mention_has_supported_phrase(mention: dict[str, Any], source_text: str) -> bool:
+    source_signature = normalize_text(source_text).casefold()
+    return any(
+        phrase and phrase in source_signature for phrase in mention.get("phrase_variants", [])
+    )
+
+
+def axis_postcheck_reason(candidate_row: dict[str, Any]) -> str:
+    axis = str(candidate_row.get("failure_axis", ""))
+    gold_summary = normalize_text(str(candidate_row.get("gold_summary", "")))
+    bad_summary = normalize_text(str(candidate_row.get("bad_summary", "")))
+    if not gold_summary or not bad_summary:
+        return ""
+
+    if axis in AXIS_NUMERIC_POSTCHECKS:
+        if FORMULA_LIKE_NUMBER_RE.search(bad_summary):
+            return "numeric axis used formula-like notation instead of a clean feed claim"
+        mentions = meaningful_numeric_mentions(bad_summary)
+        if not mentions:
+            return "numeric axis lacked an explicit number"
+        source_text = " ".join(
+            [
+                str(candidate_row.get("title", "")),
+                str(candidate_row.get("abstract", "")),
+                gold_summary,
+            ]
+        )
+        source_tokens = {mention["canonical"] for mention in meaningful_numeric_mentions(source_text)}
+        candidate_tokens = {mention["canonical"] for mention in mentions}
+        if axis == "invented_number":
+            if candidate_tokens & source_tokens:
+                return "invented_number reused a source-supported number"
+            return ""
+        novel_tokens = candidate_tokens - source_tokens
+        if novel_tokens:
+            return "wrong_number_binding introduced a new number"
+        if len(mentions) == 1 and YEAR_LIKE_RE.fullmatch(str(mentions[0]["canonical"])):
+            return "wrong_number_binding used a source year instead of a misbound metric"
+        unsupported_mentions = [
+            mention
+            for mention in mentions
+            if not mention_has_supported_phrase(mention, source_text)
+        ]
+        if not unsupported_mentions:
+            return "wrong_number_binding copied only source-supported number phrases"
+        return ""
+
+    gold_tokens = axis_word_tokens(gold_summary)
+    bad_tokens = axis_word_tokens(bad_summary)
+    if not gold_tokens or not bad_tokens:
+        return ""
+
+    gold_content = set(axis_content_tokens(gold_summary))
+    bad_content = set(axis_content_tokens(bad_summary))
+    title_content = set(axis_content_tokens(str(candidate_row.get("title", ""))))
+    prefix_len = shared_prefix_length(gold_tokens, bad_tokens)
+    suffix_len = shared_suffix_length(gold_tokens, bad_tokens)
+    shorter_len = max(min(len(gold_tokens), len(bad_tokens)), 1)
+
+    if axis == "side_detail_fixation":
+        novel_content = bad_content - gold_content
+        shared_content = gold_content & bad_content
+        if prefix_len / shorter_len >= 0.8 or suffix_len / shorter_len >= 0.8:
+            return "side_detail_fixation stayed too close to the gold framing"
+        if len(novel_content) < 2 and len(shared_content) >= max(len(bad_content) - 1, 1):
+            return "side_detail_fixation did not pivot to a secondary detail"
+        return ""
+
+    if axis == "wrong_entity":
+        token_overlap = overlap_ratio(set(gold_tokens), set(bad_tokens))
+        if token_overlap < 0.35:
+            return "wrong_entity rewrote too much of the sentence frame"
+        if max(prefix_len, suffix_len) < 2 and len(gold_content & bad_content) < 4:
+            return "wrong_entity did not preserve the original sentence frame"
+        return ""
+
+    if axis == "title_restatement":
+        title_content_coverage = coverage_ratio(bad_content, title_content)
+        gold_content_coverage = coverage_ratio(bad_content, gold_content)
+        extra_title_details = len(bad_content - title_content)
+        if gold_content_coverage >= 0.75 and (
+            title_content_coverage < 0.55 or extra_title_details >= 3
+        ):
+            return "title_restatement stayed too close to the gold summary"
+        return ""
+
+    if axis == "too_generic":
+        title_content_coverage = coverage_ratio(bad_content, title_content)
+        gold_content_coverage = coverage_ratio(bad_content, gold_content)
+        missing_gold_details = len(gold_content - bad_content)
+        if gold_content_coverage >= 0.75 and missing_gold_details <= 6:
+            return "too_generic stayed too close to the gold summary"
+        if (
+            title_content_coverage <= 0.1
+            and gold_content_coverage >= 0.5
+            and len(bad_content) >= 7
+        ):
+            return "too_generic remained too specific"
+        return ""
+
+    return ""
+
+
+def evaluate_negative_policy(
+    *,
+    candidate_row: dict[str, Any],
+    parsed: dict[str, Any],
+) -> list[str]:
+    failures: list[str] = []
+    requested_axis = str(candidate_row.get("failure_axis", ""))
+    valid_negative = bool(parsed.get("valid_negative"))
+    best_axis = normalize_axis_name(parsed.get("best_matching_axis", ""))
+    axis_matches_requested = bool(parsed.get("failure_axis_matches"))
+    reason_span = normalize_text(str(parsed.get("reason_span", ""))).casefold()
+
+    if not bool(parsed.get("needs_correction", valid_negative)):
+        failures.append("no_correction_needed")
+    if "best_matching_axis" in parsed and best_axis != requested_axis:
+        failures.append("best_axis_mismatch")
+    if not axis_matches_requested:
+        failures.append("requested_axis_not_primary")
+
+    other_axes = [
+        axis
+        for axis in normalize_axis_list(parsed.get("other_major_issue_axes", []))
+        if axis != requested_axis
+    ]
+    if other_axes:
+        failures.append("multiple_axes")
+    if not bool(parsed.get("single_axis_only", not other_axes)):
+        failures.append("multiple_axes")
+
+    if not bool(parsed.get("still_feed_style")):
+        failures.append("not_feed_style")
+    if not bool(parsed.get("meaningfully_differs_from_gold", True)):
+        failures.append("too_close_to_gold")
+    if requested_axis in SEMANTIC_AXES and bool(parsed.get("still_true_to_source", False)):
+        failures.append("semantic_negative_still_true")
+    if not valid_negative:
+        failures.append("verifier_marked_invalid")
+    if requested_axis == "wrong_entity":
+        for axis in ALL_AXES:
+            if axis == requested_axis:
+                continue
+            if axis in reason_span or axis.replace("_", " ") in reason_span:
+                failures.append("reason_span_axis_mismatch")
+                break
+    if requested_axis in {"side_detail_fixation", "title_restatement", "too_generic"}:
+        acceptable_markers = (
+            "acceptable as written",
+            "still acceptable",
+            "acceptable final",
+            "clear value beyond the title",
+            "still adds clear value",
+        )
+        if any(marker in reason_span for marker in acceptable_markers):
+            failures.append("still_acceptable_as_written")
+
+    deduped_failures: list[str] = []
+    for failure in failures:
+        if failure not in deduped_failures:
+            deduped_failures.append(failure)
+    return deduped_failures
+
+
+def build_policy_rejection_reason(
+    *,
+    parsed: dict[str, Any],
+    policy_failures: list[str],
+    axis_postcheck_reason: str,
+) -> str:
+    reason_span = normalize_text(str(parsed.get("reason_span", "")))
+    details: list[str] = []
+    if axis_postcheck_reason:
+        details.append(axis_postcheck_reason)
+    if "verifier_marked_invalid" in policy_failures:
+        details.append("verifier marked invalid negative")
+    if "no_correction_needed" in policy_failures:
+        details.append("summary does not need correction")
+    if "requested_axis_not_primary" in policy_failures:
+        details.append("requested axis was not the main issue")
+    if "best_axis_mismatch" in policy_failures:
+        best_axis = normalize_axis_name(parsed.get("best_matching_axis", "")) or "none"
+        details.append(f"best axis was {best_axis}")
+    if "multiple_axes" in policy_failures:
+        other_axes = normalize_axis_list(parsed.get("other_major_issue_axes", []))
+        if other_axes:
+            details.append(f"multiple axes: {', '.join(other_axes)}")
+        else:
+            details.append("multiple major issues")
+    if "not_feed_style" in policy_failures:
+        details.append("not feed style")
+    if "too_close_to_gold" in policy_failures:
+        details.append("too close to gold summary")
+    if "semantic_negative_still_true" in policy_failures:
+        details.append("semantic negative is still supported by title and abstract")
+    if "reason_span_axis_mismatch" in policy_failures:
+        details.append("reason span named another axis")
+    if "still_acceptable_as_written" in policy_failures:
+        details.append("verifier said the summary was still acceptable as written")
+
+    if reason_span and details:
+        return f"{reason_span}; {'; '.join(details)}"
+    if reason_span:
+        return reason_span
+    return "; ".join(details)
 
 
 def normalize_key(*parts: str) -> str:
@@ -568,35 +1270,167 @@ def build_seed_pool(
     return resolved
 
 
+def build_derived_semantic_seed_pool(
+    natural_pool: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    derived_rows: list[dict[str, Any]] = []
+    source_axis_counts: Counter[str] = Counter()
+    unique_source_axis_counts: Counter[str] = Counter()
+    seen_ids: set[str] = set()
+    prioritized = sorted(natural_pool, key=candidate_sort_key)
+    for row in prioritized:
+        source_axis = str(row.get("failure_axis", ""))
+        if source_axis not in DERIVED_SEMANTIC_SOURCE_AXES:
+            continue
+        source_axis_counts[source_axis] += 1
+        paper_id = str(row["paper_id"])
+        if paper_id in seen_ids:
+            continue
+        seed_candidate_summary = normalize_text(str(row.get("bad_summary", "")))
+        if not seed_candidate_summary:
+            continue
+        derived_rows.append(
+            {
+                "paper_id": paper_id,
+                "title": row["title"],
+                "abstract": row["abstract"],
+                "primary_category": row.get("primary_category"),
+                "categories": row.get("categories", []),
+                "created_date": row.get("created_date"),
+                "gold_summary": "",
+                "gold_source": "",
+                "teacher_model": "",
+                "seed_candidate_summary": seed_candidate_summary,
+                "source_run": row["source_run"],
+                "source_pool": "derived_mined_semantic",
+                "preferred_axes": list(DERIVED_SEMANTIC_TARGET_AXES),
+                "notes": f"derived from {source_axis}: {normalize_text(str(row.get('notes', '')))}".strip(": "),
+                "derived_from_failure_axis": source_axis,
+                "derived_from_candidate_origin": row.get("candidate_origin", ""),
+            }
+        )
+        unique_source_axis_counts[source_axis] += 1
+        seen_ids.add(paper_id)
+    stats = {
+        "derived_semantic_seed_rows": len(derived_rows),
+        "derived_semantic_source_axis_counts": dict(sorted(source_axis_counts.items())),
+        "derived_semantic_unique_source_axis_counts": dict(
+            sorted(unique_source_axis_counts.items())
+        ),
+    }
+    return derived_rows, stats
+
+
 def select_mined_candidates(
     natural_pool: list[dict[str, Any]],
     mined_axes: list[str],
     target_per_axis: int,
 ) -> list[dict[str, Any]]:
-    limit_per_axis = max(target_per_axis * DEFAULT_ATTEMPT_MULTIPLIER, target_per_axis)
     selected: list[dict[str, Any]] = []
     by_axis: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in natural_pool:
         by_axis[row["failure_axis"]].append(row)
     for axis in mined_axes:
+        limit_per_axis = generation_attempt_cap(axis, target_per_axis)
         selected.extend(by_axis.get(axis, [])[:limit_per_axis])
     return selected
+
+
+def build_regenerated_mined_seed_pool(
+    selected_natural_candidates: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+    seed_rows: list[dict[str, Any]] = []
+    audit_rows: list[dict[str, Any]] = []
+    axis_counts: Counter[str] = Counter()
+    seen_ids: set[tuple[str, str]] = set()
+    for candidate in selected_natural_candidates:
+        axis = str(candidate.get("failure_axis", ""))
+        if axis not in REGENERATED_MINED_AXES:
+            continue
+        paper_id = str(candidate["paper_id"])
+        dedupe_key = (paper_id, axis)
+        if dedupe_key in seen_ids:
+            continue
+        seen_ids.add(dedupe_key)
+        axis_counts[axis] += 1
+        seed_rows.append(
+            {
+                "paper_id": paper_id,
+                "title": candidate["title"],
+                "abstract": candidate["abstract"],
+                "primary_category": candidate.get("primary_category"),
+                "categories": candidate.get("categories", []),
+                "created_date": candidate.get("created_date"),
+                "gold_summary": "",
+                "gold_source": "",
+                "teacher_model": "",
+                "seed_candidate_summary": normalize_text(str(candidate.get("bad_summary", ""))),
+                "source_run": candidate["source_run"],
+                "source_pool": "regenerated_mined_seed",
+                "preferred_axes": [axis],
+                "notes": normalize_text(str(candidate.get("notes", ""))),
+                "derived_from_failure_axis": axis,
+                "derived_from_candidate_origin": candidate.get("candidate_origin", ""),
+            }
+        )
+        audit_rows.append(
+            {
+                **candidate,
+                "gold_summary": "",
+                "gold_source": "",
+                "status": "converted_to_seed",
+                "accepted": False,
+                "rejection_reason": "regenerated from mined seed",
+            }
+        )
+    stats = {
+        "regenerated_mined_seed_rows": len(seed_rows),
+        "regenerated_mined_seed_axis_counts": dict(sorted(axis_counts.items())),
+    }
+    return seed_rows, audit_rows, stats
 
 
 def build_generated_seed_pool_by_axis(
     *,
     training_rows: list[dict[str, Any]],
     resolved_seed_pool: list[dict[str, Any]],
+    regenerated_mined_seed_pool: list[dict[str, Any]],
+    derived_seed_pool: list[dict[str, Any]],
     requested_axes: list[str],
     release_dir: Path,
 ) -> dict[str, list[dict[str, Any]]]:
     pool_by_axis: dict[str, list[dict[str, Any]]] = {}
-    training_fallback = sorted(training_rows, key=lambda row: str(row["paper_id"]))
     for axis in requested_axes:
+        training_fallback = sorted(
+            training_rows,
+            key=lambda row: training_fallback_sort_key(axis, row),
+        )
         seen_ids: set[str] = set()
         pool: list[dict[str, Any]] = []
+        for seed_row in regenerated_mined_seed_pool:
+            if axis not in seed_row.get("preferred_axes", []):
+                continue
+            if not seed_row_supports_generated_axis(seed_row, axis):
+                continue
+            paper_id = str(seed_row["paper_id"])
+            if paper_id in seen_ids:
+                continue
+            pool.append(dict(seed_row))
+            seen_ids.add(paper_id)
         for seed_row in resolved_seed_pool:
             if axis not in seed_row.get("preferred_axes", []):
+                continue
+            if not seed_row_supports_generated_axis(seed_row, axis):
+                continue
+            paper_id = str(seed_row["paper_id"])
+            if paper_id in seen_ids:
+                continue
+            pool.append(dict(seed_row))
+            seen_ids.add(paper_id)
+        for seed_row in derived_seed_pool:
+            if axis not in seed_row.get("preferred_axes", []):
+                continue
+            if not seed_row_supports_generated_axis(seed_row, axis):
                 continue
             paper_id = str(seed_row["paper_id"])
             if paper_id in seen_ids:
@@ -607,7 +1441,7 @@ def build_generated_seed_pool_by_axis(
             paper_id = str(row["paper_id"])
             if paper_id in seen_ids:
                 continue
-            if axis in AXIS_NEEDS_DIGITS:
+            if axis in AXIS_REQUIRES_SOURCE_NUMBERS:
                 joined = " ".join(
                     [
                         str(row.get("title", "")),
@@ -617,26 +1451,27 @@ def build_generated_seed_pool_by_axis(
                 )
                 if not contains_digit(joined):
                     continue
-            pool.append(
-                {
-                    "paper_id": paper_id,
-                    "title": row["title"],
-                    "abstract": row["abstract"],
-                    "primary_category": row.get("primary_category"),
-                    "categories": row.get("categories", []),
-                    "created_date": row.get("created_date"),
-                    "gold_summary": normalize_text(str(row["summary"])),
-                    "gold_source": "release_training_row",
-                    "teacher_model": row.get("teacher_model", ""),
-                    "seed_candidate_summary": "",
-                    "source_run": str(release_dir),
-                    "source_pool": "release_training",
-                    "preferred_axes": [axis],
-                    "notes": "",
-                }
-            )
+            fallback_seed_row = {
+                "paper_id": paper_id,
+                "title": row["title"],
+                "abstract": row["abstract"],
+                "primary_category": row.get("primary_category"),
+                "categories": row.get("categories", []),
+                "created_date": row.get("created_date"),
+                "gold_summary": normalize_text(str(row["summary"])),
+                "gold_source": "release_training_row",
+                "teacher_model": row.get("teacher_model", ""),
+                "seed_candidate_summary": "",
+                "source_run": str(release_dir),
+                "source_pool": "release_training",
+                "preferred_axes": [axis],
+                "notes": "",
+            }
+            if not seed_row_supports_generated_axis(fallback_seed_row, axis):
+                continue
+            pool.append(fallback_seed_row)
             seen_ids.add(paper_id)
-        pool_by_axis[axis] = pool
+        pool_by_axis[axis] = order_seed_pool_for_axis(axis, pool)
     return pool_by_axis
 
 
@@ -788,6 +1623,14 @@ def verify_negative_candidate(
         label=f"negative-verify {candidate_row['paper_id']} {candidate_row['failure_axis']}",
     )
     parsed = response["parsed"]
+    policy_failures = evaluate_negative_policy(candidate_row=candidate_row, parsed=parsed)
+    postcheck_reason = axis_postcheck_reason(candidate_row) if not policy_failures else ""
+    accepted = not policy_failures and not postcheck_reason
+    rejection_reason = build_policy_rejection_reason(
+        parsed=parsed,
+        policy_failures=policy_failures,
+        axis_postcheck_reason=postcheck_reason,
+    )
     return {
         **candidate_row,
         "verifier_prompt_version": verifier_spec["prompt_version"],
@@ -795,11 +1638,10 @@ def verify_negative_candidate(
         "verification_raw_text": response["raw_text"],
         "verification_api_response_id": response["api_response_id"],
         "verification_parsed": parsed,
-        "accepted": bool(parsed.get("valid_negative"))
-        and bool(parsed.get("failure_axis_matches"))
-        and bool(parsed.get("single_axis_only"))
-        and bool(parsed.get("still_feed_style")),
-        "rejection_reason": normalize_text(str(parsed.get("reason_span", ""))),
+        "policy_rejection_flags": policy_failures,
+        "axis_postcheck_reason": postcheck_reason,
+        "accepted": accepted,
+        "rejection_reason": "" if accepted else rejection_reason,
     }
 
 
@@ -811,6 +1653,40 @@ def generate_bad_summary_candidate(
     args: argparse.Namespace,
     api_key: str,
 ) -> dict[str, Any]:
+    if axis == "wrong_number_binding":
+        structured_candidate = structured_wrong_number_binding_candidate(seed_row)
+        if structured_candidate is not None:
+            return {
+                "paper_id": seed_row["paper_id"],
+                "title": seed_row["title"],
+                "abstract": seed_row["abstract"],
+                "primary_category": seed_row.get("primary_category"),
+                "categories": seed_row.get("categories", []),
+                "created_date": seed_row.get("created_date"),
+                "gold_summary": seed_row["gold_summary"],
+                "bad_summary": structured_candidate["bad_summary"],
+                "failure_axis": axis,
+                "source_kind": "generated",
+                "source_run": seed_row["source_run"],
+                "candidate_origin": f"structured_wrong_number_binding:{seed_row.get('source_pool', 'unknown')}",
+                "teacher_model": "deterministic_builder",
+                "generator_prompt_version": "structured_wrong_number_binding_v1",
+                "verifier_prompt_version": "",
+                "gold_source": seed_row["gold_source"],
+                "notes": normalize_text(str(seed_row.get("notes", ""))),
+                "generator_raw_text": json.dumps(
+                    {
+                        "failure_axis": axis,
+                        "bad_summary": structured_candidate["bad_summary"],
+                        "generation_mode": "structured_wrong_number_binding_v1",
+                    },
+                    ensure_ascii=False,
+                ),
+                "generator_api_response_id": None,
+                "generator_reported_axis": axis,
+                "gold_teacher_model": seed_row.get("teacher_model", ""),
+                "seed_source_pool": seed_row.get("source_pool", ""),
+            }
     response = request_prompt_json(
         spec=generator_spec,
         model=args.generator_model,
@@ -905,6 +1781,17 @@ def canonicalize_verified_row(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def generated_axis_row_sort_key(row: dict[str, Any]) -> tuple[Any, ...]:
+    axis = str(row.get("failure_axis", ""))
+    pool = str(row.get("seed_source_pool", ""))
+    source_priority = GENERATED_AXIS_SOURCE_PRIORITY.get(axis, {}).get(pool, 99)
+    return (
+        source_priority,
+        str(row.get("paper_id", "")),
+        normalize_text(str(row.get("bad_summary", ""))).casefold(),
+    )
+
+
 def build_correction_row(row: dict[str, Any]) -> dict[str, Any]:
     return {
         "paper_id": row["paper_id"],
@@ -924,7 +1811,9 @@ def main() -> None:
     validate_args(args)
     output_dir = resolve_output_dir(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    mlx_output_dir = output_dir / "mlx_correction_chat"
+    mlx_output_dir = (
+        output_dir if output_dir.name == "mlx_correction_chat" else output_dir / "mlx_correction_chat"
+    )
     mlx_output_dir.mkdir(parents=True, exist_ok=True)
 
     release_dir = Path(args.release_dir)
@@ -953,6 +1842,9 @@ def main() -> None:
         dropped_rows=dropped_rows,
         run_dir=run_dir,
     )
+    derived_semantic_seed_pool, derived_semantic_seed_stats = build_derived_semantic_seed_pool(
+        natural_pool
+    )
     resolved_seed_pool = build_seed_pool(
         seed_entries=seed_entries,
         training_by_id=training_by_id,
@@ -960,24 +1852,38 @@ def main() -> None:
         holdout_path=holdout_review_path,
         release_dir=release_dir,
     )
-    generated_seed_pool_by_axis = build_generated_seed_pool_by_axis(
-        training_rows=training_rows,
-        resolved_seed_pool=resolved_seed_pool,
-        requested_axes=args.generated_axes + args.mined_axes,
-        release_dir=release_dir,
-    )
-
-    write_jsonl(output_dir / "semantic_seed_pool.jsonl", resolved_seed_pool)
-
     selected_natural_candidates = select_mined_candidates(
         natural_pool=natural_pool,
         mined_axes=args.mined_axes,
         target_per_axis=args.target_per_axis,
     )
+    regenerated_mined_seed_pool, regenerated_mined_audit_rows, regenerated_mined_seed_stats = (
+        build_regenerated_mined_seed_pool(selected_natural_candidates)
+    )
+    direct_natural_candidates = [
+        row
+        for row in selected_natural_candidates
+        if str(row.get("failure_axis", "")) not in REGENERATED_MINED_AXES
+    ]
+    generated_seed_pool_by_axis = build_generated_seed_pool_by_axis(
+        training_rows=training_rows,
+        resolved_seed_pool=resolved_seed_pool,
+        regenerated_mined_seed_pool=regenerated_mined_seed_pool,
+        derived_seed_pool=derived_semantic_seed_pool,
+        requested_axes=args.generated_axes + args.mined_axes,
+        release_dir=release_dir,
+    )
+
+    write_jsonl(output_dir / "semantic_seed_pool.jsonl", resolved_seed_pool)
+    write_jsonl(output_dir / "derived_semantic_seed_pool.jsonl", derived_semantic_seed_pool)
+    write_jsonl(output_dir / "regenerated_mined_seed_pool.jsonl", regenerated_mined_seed_pool)
 
     if args.prepare_only:
         print("[pack] prepare-only mode: writing pools without model calls.", file=sys.stderr, flush=True)
-        write_jsonl(output_dir / "natural_negative_candidates.jsonl", selected_natural_candidates)
+        write_jsonl(
+            output_dir / "natural_negative_candidates.jsonl",
+            direct_natural_candidates + regenerated_mined_audit_rows,
+        )
         prepared_generated_rows = build_prepared_generated_rows(
             pool_by_axis=generated_seed_pool_by_axis,
             needed_by_axis={axis: args.target_per_axis for axis in args.generated_axes + args.mined_axes},
@@ -1008,9 +1914,11 @@ def main() -> None:
             "target_per_axis": args.target_per_axis,
             "generated_axes": args.generated_axes,
             "mined_axes": args.mined_axes,
-            "natural_candidate_rows": len(selected_natural_candidates),
+            "natural_candidate_rows": len(direct_natural_candidates) + len(regenerated_mined_audit_rows),
             "prepared_generated_rows": len(prepared_generated_rows),
             "seed_pool_rows": len(resolved_seed_pool),
+            **regenerated_mined_seed_stats,
+            **derived_semantic_seed_stats,
             **natural_stats,
         }
         (output_dir / "run_manifest.json").write_text(
@@ -1029,7 +1937,7 @@ def main() -> None:
 
     print("[pack] resolving gold summaries for mined candidates...", file=sys.stderr, flush=True)
     mined_candidates_with_gold: list[dict[str, Any]] = []
-    for candidate in selected_natural_candidates:
+    for candidate in direct_natural_candidates:
         seed_like_row = {
             **candidate,
             "seed_candidate_summary": candidate["bad_summary"],
@@ -1077,7 +1985,7 @@ def main() -> None:
     natural_verification_inputs = [
         row for row in mined_candidates_with_gold if row.get("status") == "gold_ready"
     ]
-    natural_candidates_verified = [
+    natural_candidates_verified = list(regenerated_mined_audit_rows) + [
         row for row in mined_candidates_with_gold if row.get("status") != "gold_ready"
     ]
     if natural_verification_inputs:
@@ -1124,7 +2032,7 @@ def main() -> None:
     for axis, needed in needed_by_axis.items():
         if needed <= 0:
             continue
-        attempt_cap = max(needed * DEFAULT_ATTEMPT_MULTIPLIER, needed)
+        attempt_cap = generation_attempt_cap(axis, needed)
         for seed_row in generated_seed_pool_by_axis.get(axis, [])[:attempt_cap]:
             generation_seed_jobs.append((axis, seed_row))
 
@@ -1231,7 +2139,15 @@ def main() -> None:
     verified_rows: list[dict[str, Any]] = []
     for axis in args.mined_axes + args.generated_axes:
         axis_rows = accepted_by_axis.get(axis, [])
-        axis_rows.sort(key=lambda row: (str(row["paper_id"]), normalize_text(str(row["bad_summary"])).casefold()))
+        if axis in args.generated_axes:
+            axis_rows.sort(key=generated_axis_row_sort_key)
+        else:
+            axis_rows.sort(
+                key=lambda row: (
+                    str(row["paper_id"]),
+                    normalize_text(str(row["bad_summary"])).casefold(),
+                )
+            )
         verified_rows.extend(axis_rows[: args.target_per_axis])
 
     verified_rows.sort(key=lambda row: (row["failure_axis"], str(row["paper_id"])))
@@ -1288,6 +2204,8 @@ def main() -> None:
         "generated_axes": args.generated_axes,
         "mined_axes": args.mined_axes,
         "seed_pool_rows": len(resolved_seed_pool),
+        **regenerated_mined_seed_stats,
+        **derived_semantic_seed_stats,
         "natural_candidate_rows": len(natural_candidates_verified),
         "generated_candidate_rows": len(generated_candidates),
         "verified_rows": len(verified_rows),

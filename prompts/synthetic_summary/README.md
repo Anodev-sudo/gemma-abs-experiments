@@ -45,9 +45,27 @@ Alternate reviewer prompts:
 - `deepseek_v32_hard_negative_generator_v1.json`
   - Intended input: `title + abstract + gold summary + requested failure axis`
   - Goal: generate one plausible near-miss summary that is wrong on exactly one requested axis.
+- `deepseek_v32_hard_negative_generator_v2_precision.json`
+  - Intended input: `title + abstract + gold summary + requested failure axis`
+  - Goal: current recommended hard-negative generator; pairs with the structured numeric verifier and tighter axis-specific construction rules.
+- `qwen3_235b_a22b_2507_hard_negative_verifier_v6_precision_numeric.json`
+  - Intended input: `title + abstract + gold summary + bad summary + requested failure axis`
+  - Goal: current recommended verifier for hard negatives; keeps the precision-first consistency rules and explicitly calibrates clean one-slot `wrong_number_binding` swaps.
+- `qwen3_235b_a22b_2507_hard_negative_verifier_v3_balanced.json`
+  - Intended input: `title + abstract + gold summary + bad summary + requested failure axis`
+  - Goal: earlier balanced verifier that preserved smoke-run yield before the structured numeric path landed.
+- `qwen3_235b_a22b_2507_hard_negative_verifier_v5_precision.json`
+  - Intended input: `title + abstract + gold summary + bad summary + requested failure axis`
+  - Goal: earlier precision-first verifier that removed contradiction overrides and rejected acceptable-as-written rows more aggressively, but still underfilled `wrong_number_binding`.
+- `qwen3_235b_a22b_2507_hard_negative_verifier_v2.json`
+  - Intended input: `title + abstract + gold summary + bad summary + requested failure axis`
+  - Goal: yield-aware experimental variant that relaxes some checks to recover brittle numeric and entity axes.
+- `qwen3_235b_a22b_2507_hard_negative_verifier_v4_conservative.json`
+  - Intended input: `title + abstract + gold summary + bad summary + requested failure axis`
+  - Goal: precision-first experimental variant that rejects borderline negatives more aggressively.
 - `qwen3_235b_a22b_2507_hard_negative_verifier_v1.json`
   - Intended input: `title + abstract + gold summary + bad summary + requested failure axis`
-  - Goal: keep only negatives that are still feed-like and wrong in exactly one requested way.
+  - Goal: earlier structured verifier baseline retained for comparison with the newer balanced and experimental variants.
 
 Design notes:
 
@@ -59,6 +77,9 @@ Design notes:
 - The `qwen3_235b_a22b_2507_reviewer_classifier_v3_production.json` variant is the fast-path reviewer for large production runs; it removes only checks that are already handled in code before review.
 - The DeepSeek rewrite reviewer remains available when a heavier second pass is wanted.
 - The hard-negative generator and verifier prompts are for second-stage correction-data construction, not the main 5k synthetic-summary pipeline.
+- The current default hard-negative pair in `scripts/build_hard_negative_pack.py` is `deepseek_v32_hard_negative_generator_v2_precision.json` plus `qwen3_235b_a22b_2507_hard_negative_verifier_v6_precision_numeric.json`.
+- That default keeps the precision-first consistency rules, removes contradiction admissions, and restores `wrong_number_binding` coverage by using structured one-slot numeric swaps before falling back to freeform generation.
+- The `v3`, `v5`, `v2`, and `v4` hard-negative verifiers are older experiment variants retained for comparison and troubleshooting.
 - Hard local filters now run before review and skip the reviewer entirely for deterministic failures such as overlong summaries, banned openings, non-single-sentence outputs, empty/trivially short outputs, near-duplicate title restatements, and obviously formula-heavy notation that reads poorly in the feed.
 - Both prompts assume the app already shows the title, author list, and date, so the summary should focus on the payoff.
 - The preferred target remains one sentence and roughly `10-15` words.

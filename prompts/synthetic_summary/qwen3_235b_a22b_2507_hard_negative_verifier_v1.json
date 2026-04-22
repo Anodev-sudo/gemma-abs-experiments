@@ -5,9 +5,14 @@
   "student_target": "verification_only",
   "response_schema": {
     "valid_negative": "boolean",
+    "needs_correction": "boolean",
     "failure_axis_matches": "boolean",
+    "best_matching_axis": "string",
+    "other_major_issue_axes": "string[]",
     "single_axis_only": "boolean",
     "still_feed_style": "boolean",
+    "meaningfully_differs_from_gold": "boolean",
+    "still_true_to_source": "boolean",
     "reason_span": "string"
   },
   "response_format": {
@@ -22,13 +27,59 @@
           "valid_negative": {
             "type": "boolean"
           },
+          "needs_correction": {
+            "type": "boolean"
+          },
           "failure_axis_matches": {
             "type": "boolean"
+          },
+          "best_matching_axis": {
+            "type": "string",
+            "enum": [
+              "title_restatement",
+              "too_generic",
+              "side_detail_fixation",
+              "wrong_number_binding",
+              "invented_number",
+              "reversed_polarity",
+              "wrong_entity",
+              "too_long",
+              "too_short",
+              "not_single_sentence",
+              "formula_heavy",
+              "none"
+            ]
+          },
+          "other_major_issue_axes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "title_restatement",
+                "too_generic",
+                "side_detail_fixation",
+                "wrong_number_binding",
+                "invented_number",
+                "reversed_polarity",
+                "wrong_entity",
+                "too_long",
+                "too_short",
+                "not_single_sentence",
+                "formula_heavy"
+              ]
+            },
+            "uniqueItems": true
           },
           "single_axis_only": {
             "type": "boolean"
           },
           "still_feed_style": {
+            "type": "boolean"
+          },
+          "meaningfully_differs_from_gold": {
+            "type": "boolean"
+          },
+          "still_true_to_source": {
             "type": "boolean"
           },
           "reason_span": {
@@ -37,15 +88,19 @@
         },
         "required": [
           "valid_negative",
+          "needs_correction",
           "failure_axis_matches",
+          "best_matching_axis",
+          "other_major_issue_axes",
           "single_axis_only",
           "still_feed_style",
+          "meaningfully_differs_from_gold",
+          "still_true_to_source",
           "reason_span"
         ]
       }
     }
   },
-  "system_prompt": "You verify hard negatives for a one-sentence paper-summary correction dataset.\nReturn one JSON object only.\n\nAccept a negative only if all of these are true:\n- It is actually wrong for the requested axis.\n- It is otherwise close to a plausible mobile-feed sentence.\n- It is not broken in several ways at once.\n- It differs meaningfully from the gold summary.\n\nJudging guidance\n- valid_negative should be true only when every other check is true.\n- failure_axis_matches means the requested axis is the real problem.\n- single_axis_only means the summary is not also generic, malformed, title-restating, or wrong in several semantic ways at once.\n- still_feed_style means it still reads like a concise feed sentence.\n\nReason span rules\n- Leave reason_span empty when valid_negative is true.\n- Otherwise use a short plain-English phrase such as \"multiple semantic errors\" or \"requested axis does not match\".",
-  "user_prompt_template": "Return JSON only using this schema:\n{{\"valid_negative\":true,\"failure_axis_matches\":true,\"single_axis_only\":true,\"still_feed_style\":true,\"reason_span\":\"\"}}\n\nREQUESTED FAILURE AXIS:\n{failure_axis}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nGOLD SUMMARY:\n{gold_summary}\n\nBAD SUMMARY:\n{candidate_summary}"
+  "system_prompt": "You verify hard negatives for a one-sentence paper-summary correction dataset.\nReturn one JSON object only.\n\nAccept a negative only if all of these are true:\n- It is actually wrong for the requested axis.\n- It is otherwise close to a plausible mobile-feed sentence.\n- It is not broken in several ways at once.\n- It differs meaningfully from the gold summary.\n\nJudging guidance\n- valid_negative should be true only when every other check is true.\n- needs_correction should be true when the bad summary is genuinely wrong or degraded enough that a correction model should change it.\n- failure_axis_matches means the requested axis is the main reason the sentence is bad.\n- best_matching_axis should name the main failure axis. Use \"none\" only if the sentence is basically acceptable.\n- other_major_issue_axes should list any additional major problems that materially contribute to the sentence being bad.\n- single_axis_only means the summary is not also generic, malformed, title-restating, or wrong in several semantic ways at once.\n- still_feed_style means it still reads like a concise feed sentence.\n- meaningfully_differs_from_gold should be false when the candidate is too close to the gold summary to function as a useful negative.\n- still_true_to_source should be true when the bad summary is actually supported by the title and abstract.\n\nAxis-specific guidance\n- For title_restatement, accept only when the bad summary mostly repackages title-level information or collapses the claim down to what the title already tells the reader.\n- For title_restatement, reject if the bad summary stays very close to the gold summary and merely trims a clause, adjective, or payoff detail.\n- For too_generic, accept only when the bad summary becomes noticeably vaguer or more interchangeable by losing the concrete hook, payoff, or object that made the gold summary worth opening.\n- For too_generic, reject if the bad summary is still a crisp, specific claim and mainly differs from the gold summary by lighter wording or one dropped detail.\n- For both axes, if the bad summary still adds clear value beyond the title or still preserves nearly all of the gold summary's concrete claim, reject it.\n- For side_detail_fixation, accept only when the bad summary clearly pivots onto a real secondary detail from the abstract instead of the main reason to open.\n- For side_detail_fixation, reject if it is still basically an acceptable main-point summary, or if it mainly just drops a clause from the gold summary.\n- For side_detail_fixation, reject if it restates the same main takeaway in narrower or more technical words rather than changing the focus.\n- For wrong_number_binding, accept only when the sentence reuses a real source number but binds it to the wrong metric, entity, or outcome.\n- For wrong_number_binding, reject if it invents a new number, if it merely appends a true year or date, or if the number-bearing phrase is already supported by the title or abstract.\n- For invented_number, accept only when every explicit number in the candidate is unsupported by the title, abstract, and gold summary.\n- For invented_number, reject if it reuses any source-supported number or mixes a new number with other copied numeric claims.\n- For both numeric axes, reject if there is no explicit number or if the sentence uses formula-like notation instead of a clean feed-style claim.\n- For wrong_entity, accept only when the sentence keeps roughly the same frame and claim shape, but assigns that claim to the wrong subject, object, domain, or affected group.\n- For wrong_entity, reject if the sentence rewrites too much of the original claim or drifts into several semantic changes at once.\n\nReason span rules\n- Leave reason_span empty when valid_negative is true.\n- Otherwise use a short plain-English phrase such as \"still true to source\", \"reused source number\", \"too close to gold summary\", or \"requested axis does not match\".",
+  "user_prompt_template": "Return JSON only using this schema:\n{{\"valid_negative\":true,\"needs_correction\":true,\"failure_axis_matches\":true,\"best_matching_axis\":\"wrong_number_binding\",\"other_major_issue_axes\":[],\"single_axis_only\":true,\"still_feed_style\":true,\"meaningfully_differs_from_gold\":true,\"still_true_to_source\":false,\"reason_span\":\"\"}}\n\nREQUESTED FAILURE AXIS:\n{failure_axis}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nGOLD SUMMARY:\n{gold_summary}\n\nBAD SUMMARY:\n{candidate_summary}"
 }
-

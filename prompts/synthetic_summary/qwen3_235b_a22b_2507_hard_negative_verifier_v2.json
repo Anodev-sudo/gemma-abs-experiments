@@ -1,0 +1,101 @@
+{
+  "prompt_version": "qwen3_235b_a22b_2507_hard_negative_verifier_v2",
+  "role": "negative_verifier",
+  "teacher_input": "title_abstract_gold_bad_axis",
+  "student_target": "verification_only",
+  "response_schema": {
+    "valid_negative": "boolean",
+    "needs_correction": "boolean",
+    "failure_axis_matches": "boolean",
+    "best_matching_axis": "string",
+    "other_major_issue_axes": "array[string]",
+    "still_true_to_source": "boolean",
+    "meaningfully_differs_from_gold": "boolean",
+    "still_feed_style": "boolean",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "hard_negative_verifier_v2",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valid_negative": {
+            "type": "boolean"
+          },
+          "needs_correction": {
+            "type": "boolean"
+          },
+          "failure_axis_matches": {
+            "type": "boolean"
+          },
+          "best_matching_axis": {
+            "type": "string",
+            "enum": [
+              "title_restatement",
+              "too_generic",
+              "side_detail_fixation",
+              "wrong_number_binding",
+              "invented_number",
+              "reversed_polarity",
+              "wrong_entity",
+              "too_long",
+              "too_short",
+              "not_single_sentence",
+              "formula_heavy",
+              "none"
+            ]
+          },
+          "other_major_issue_axes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "title_restatement",
+                "too_generic",
+                "side_detail_fixation",
+                "wrong_number_binding",
+                "invented_number",
+                "reversed_polarity",
+                "wrong_entity",
+                "too_long",
+                "too_short",
+                "not_single_sentence",
+                "formula_heavy"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "still_true_to_source": {
+            "type": "boolean"
+          },
+          "meaningfully_differs_from_gold": {
+            "type": "boolean"
+          },
+          "still_feed_style": {
+            "type": "boolean"
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "valid_negative",
+          "needs_correction",
+          "failure_axis_matches",
+          "best_matching_axis",
+          "other_major_issue_axes",
+          "still_true_to_source",
+          "meaningfully_differs_from_gold",
+          "still_feed_style",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You verify hard negatives for a one-sentence paper-summary correction dataset.\nReturn one JSON object only.\n\nAccept a negative only if all of these are true:\n- It clearly needs correction, not just a nicer rewrite.\n- The requested failure axis is the single best label.\n- It differs meaningfully from the gold summary.\n- It still reads like a concise mobile-feed sentence.\n- For semantic axes, it is not still materially supported by the title and abstract.\n\nAxis guidance\n- title_restatement: mostly repeats the title and adds little feed value.\n- too_generic: stays too vague to answer why someone should open the paper.\n- side_detail_fixation: focuses on a secondary detail while missing the main payoff.\n- wrong_number_binding: uses a real quantity from the source but binds it to the wrong claim, entity, or outcome.\n- invented_number: adds a precise quantity or percentage not supported by the source.\n- reversed_polarity: flips the main implication, direction, or effect.\n- wrong_entity: attaches a real claim to the wrong subject, object, or affected group.\n\nField guidance\n- valid_negative: true only when every required acceptance condition is satisfied.\n- needs_correction: true only when this bad summary should be corrected in the final dataset.\n- failure_axis_matches: true only when the requested axis is the main reason it needs correction.\n- best_matching_axis: choose the single best label from the allowed list; use none if no label clearly fits.\n- other_major_issue_axes: list any additional substantial issue axes besides the best one; otherwise return [].\n- still_true_to_source: true when the bad summary remains materially supported by the title and abstract.\n- meaningfully_differs_from_gold: true when the difference from the gold summary is large enough to teach a correction.\n- still_feed_style: true when it still sounds like a concise feed sentence.\n\nImportant nuance\n- title_restatement, too_generic, and side_detail_fixation may remain partly true, but they should still need correction; reject them if they would still be acceptable final summaries.\n- For wrong_number_binding, the raw number itself may appear in the source; judge whether the full claim is unsupported, not whether the quantity exists somewhere in the abstract.\n- For wrong_number_binding, reject year/date append cases, copied formula strings, or claims whose whole number-bearing phrase is already supported.\n- Semantic negatives should usually have still_true_to_source = false.\n\nReason span rules\n- Leave reason_span empty when valid_negative is true.\n- Otherwise use a short plain-English phrase such as \"best axis is wrong_entity\" or \"summary is still acceptable as written\".",
+  "user_prompt_template": "Return JSON only using this schema:\n{{\"valid_negative\":true,\"needs_correction\":true,\"failure_axis_matches\":true,\"best_matching_axis\":\"too_generic\",\"other_major_issue_axes\":[],\"still_true_to_source\":false,\"meaningfully_differs_from_gold\":true,\"still_feed_style\":true,\"reason_span\":\"\"}}\n\nREQUESTED FAILURE AXIS:\n{failure_axis}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nGOLD SUMMARY:\n{gold_summary}\n\nBAD SUMMARY:\n{candidate_summary}"
+}
