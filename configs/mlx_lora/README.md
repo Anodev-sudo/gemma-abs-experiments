@@ -29,6 +29,12 @@ Current configs:
   - Student input: `title_abstract`
   - Goal: apples-to-apples follow-up to the 270M run when we want to test
     whether the remaining errors are mostly model-size limited
+- `gemma_3_270m_it_title_abstract_10746_continue_from_1400_v1.yaml`
+  - Base model: `google/gemma-3-270m-it`
+  - Dataset: merged `10,746`-row release, converted to MLX `chat` format
+  - Student input: `title_abstract`
+  - Goal: continue the preferred `0001400` title+abstract adapter on a larger
+    reshuffled base dataset instead of starting over from scratch
 
 Why this setup:
 
@@ -103,6 +109,22 @@ The prepared title-aware dataset lives at:
 
 ```text
 hf_dataset/releases/recent_3y_balanced_5000_pilot_v2/mlx_lora/title_abstract_chat_gemma_270m_it_abstract_to_glanceable_summary_v1
+```
+
+The merged `10,746`-row title-aware dataset lives at:
+
+```text
+hf_dataset/releases/recent_3y_balanced_10746_v1/mlx_lora/title_abstract_chat_gemma_270m_it_abstract_to_glanceable_summary_v1
+```
+
+For the next long 270M continuation run on the merged release, use the repo-local
+runtime so the command is reproducible inside this workspace:
+
+```bash
+hf_bucket/experiments/mlx_lora/runtime/py312/bin/python \
+  -m mlx_lm.lora \
+  --config configs/mlx_lora/gemma_3_270m_it_title_abstract_10746_continue_from_1400_v1.yaml \
+  --mask-prompt
 ```
 
 Note:

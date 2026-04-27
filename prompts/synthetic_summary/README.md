@@ -66,6 +66,9 @@ Alternate reviewer prompts:
 - `qwen3_235b_a22b_2507_hard_negative_verifier_v1.json`
   - Intended input: `title + abstract + gold summary + bad summary + requested failure axis`
   - Goal: earlier structured verifier baseline retained for comparison with the newer balanced and experimental variants.
+- `qwen3_235b_a22b_2507_faithfulness_cleanup_rewriter_v1.json`
+  - Intended input: `title + abstract + existing summary + heuristic risk flags`
+  - Goal: draft safer SFT targets for high-risk accepted rows by removing unsupported numbers, entity labels, mechanisms, causal claims, and overstrong wording.
 
 Design notes:
 
@@ -77,6 +80,7 @@ Design notes:
 - The `qwen3_235b_a22b_2507_reviewer_classifier_v3_production.json` variant is the fast-path reviewer for large production runs; it removes only checks that are already handled in code before review.
 - The DeepSeek rewrite reviewer remains available when a heavier second pass is wanted.
 - The hard-negative generator and verifier prompts are for second-stage correction-data construction, not the main 5k synthetic-summary pipeline.
+- The faithfulness cleanup rewriter is for SFT overlay construction, not DPO. It drafts candidate replacements that still require manual agent review before release materialization.
 - The current default hard-negative pair in `scripts/build_hard_negative_pack.py` is `deepseek_v32_hard_negative_generator_v2_precision.json` plus `qwen3_235b_a22b_2507_hard_negative_verifier_v6_precision_numeric.json`.
 - That default keeps the precision-first consistency rules, removes contradiction admissions, and restores `wrong_number_binding` coverage by using structured one-slot numeric swaps before falling back to freeform generation.
 - The `v3`, `v5`, `v2`, and `v4` hard-negative verifiers are older experiment variants retained for comparison and troubleshooting.
@@ -125,3 +129,27 @@ python3 scripts/run_synthetic_summary_pipeline.py \
 Repeat with `--shard-index 1` through `5` for the rest of the corpus. In full-corpus mode, `sample_source_rows.jsonl` contains the selected shard rows rather than a random smoke sample.
 
 The script automatically loads `.env` from the repo root.
+
+Faithfulness cleanup overlay workflow:
+
+```bash
+python3 scripts/prepare_faithfulness_cleanup_candidates.py
+
+python3 scripts/run_faithfulness_cleanup_rewriter.py \
+  --prepare-only
+
+python3 scripts/run_faithfulness_cleanup_rewriter.py \
+  2>&1 | tee hf_bucket/experiments/faithfulness_cleanup/recent_3y_balanced_10746_faithfulness_overlay_800_v1/rewrite_run/rewrite.log
+
+python3 scripts/prepare_faithfulness_cleanup_review_bundle.py
+```
+
+After manual primary and QA review decisions are filled in, materialize the overlay release:
+
+```bash
+python3 scripts/prepare_faithfulness_cleanup_qa_followup.py \
+  --review-bundle-dir hf_bucket/experiments/faithfulness_cleanup/recent_3y_balanced_10746_faithfulness_overlay_800_v1/manual_review
+
+python3 scripts/materialize_faithfulness_cleanup_overlay.py \
+  --review-bundle-dir hf_bucket/experiments/faithfulness_cleanup/recent_3y_balanced_10746_faithfulness_overlay_800_v1/manual_review
+```

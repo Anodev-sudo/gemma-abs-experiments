@@ -241,12 +241,37 @@ def split_counts_for_total(total_count: int) -> dict[str, int]:
     }
 
 
+def validate_prompt_source_row(
+    row: dict[str, Any],
+    *,
+    input_mode: str,
+) -> None:
+    paper_id = str(row.get("paper_id", "")).strip() or "<unknown>"
+    title = str(row.get("title", "")).strip()
+    abstract = str(row.get("abstract", "")).strip()
+    if input_mode == "title_abstract":
+        if not title:
+            raise ValueError(
+                f"Row for paper_id={paper_id} is missing title for input_mode=title_abstract."
+            )
+        if not abstract:
+            raise ValueError(
+                f"Row for paper_id={paper_id} is missing abstract for input_mode=title_abstract."
+            )
+    elif input_mode == "abstract_only":
+        if not abstract:
+            raise ValueError(
+                f"Row for paper_id={paper_id} is missing abstract for input_mode=abstract_only."
+            )
+
+
 def build_dpo_row(
     row: dict[str, Any],
     *,
     prompt_spec: dict[str, Any],
     input_mode: str,
 ) -> dict[str, Any]:
+    validate_prompt_source_row(row, input_mode=input_mode)
     prompt = build_prompt_messages(row, prompt_spec, input_mode)
     return {
         "paper_id": str(row["paper_id"]),
@@ -328,6 +353,9 @@ def main() -> None:
     selected_rows = []
     for axis_rows in rows_by_axis.values():
         selected_rows.extend(axis_rows)
+
+    for row in selected_rows:
+        validate_prompt_source_row(row, input_mode=args.input_mode)
 
     split_rows: dict[str, list[dict[str, Any]]] = {"train": [], "valid": [], "test": []}
     for axis in sorted(rows_by_axis):

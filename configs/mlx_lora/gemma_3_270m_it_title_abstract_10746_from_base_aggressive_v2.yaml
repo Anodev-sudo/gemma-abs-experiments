@@ -1,0 +1,59 @@
+# MLX LoRA config for a short faithfulness-correction continuation of the
+# 10.7k base-aggressive v1 run. This trains only on the reviewed 800-row
+# correction overlay.
+# Run with:
+#   hf_bucket/experiments/mlx_lora/runtime/py312/bin/python \
+#     -m mlx_lm.lora \
+#     --config configs/mlx_lora/gemma_3_270m_it_title_abstract_10746_from_base_aggressive_v2.yaml \
+#     --mask-prompt
+
+model: "google/gemma-3-270m-it"
+train: true
+fine_tune_type: lora
+optimizer: adamw
+
+# Reviewed 800-row faithfulness overlay converted into MLX chat format with
+# title+abstract prompts.
+data: "hf_dataset/releases/recent_3y_balanced_10746_faithfulness_overlay_800_v1/mlx_lora/title_abstract_chat_gemma_270m_it_abstract_to_glanceable_summary_v1"
+
+seed: 20260427
+num_layers: -1
+
+# Keep the memory-safe microbatch shape while preserving an effective batch
+# size of 8 via accumulation.
+batch_size: 4
+
+# 720 train rows with an effective batch size of 8 is about 90 optimizer steps
+# per pass. Four hundred iterations gives the correction overlay several short
+# passes without turning it into a full replacement run.
+iters: 400
+val_batches: -1
+
+# Small correction pass on top of the readable base-aggressive v1 checkpoint.
+learning_rate: 5e-6
+steps_per_report: 10
+steps_per_eval: 50
+grad_accumulation_steps: 2
+
+# Continue from the readable base-aggressive v1 endpoint, then use the overlay
+# to push down unsupported specificity and overstrong claims.
+resume_adapter_file: "hf_bucket/experiments/mlx_lora/gemma_3_270m_it_title_abstract_10746_from_base_aggressive_v1/adapters/0003600_adapters.safetensors"
+
+adapter_path: "hf_bucket/experiments/mlx_lora/gemma_3_270m_it_title_abstract_10746_from_base_aggressive_v2/adapters"
+save_every: 50
+test: true
+test_batches: -1
+max_seq_length: 1024
+
+# Keep the successful memory-saving setting from the continuation run.
+grad_checkpoint: true
+
+lora_parameters:
+  keys:
+    - "self_attn.q_proj"
+    - "self_attn.k_proj"
+    - "self_attn.v_proj"
+    - "self_attn.o_proj"
+  rank: 16
+  scale: 10.0
+  dropout: 0.0

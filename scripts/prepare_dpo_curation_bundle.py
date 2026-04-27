@@ -368,6 +368,7 @@ def main() -> None:
                 "failure_axis": axis,
                 "paper_id": str(row.get("paper_id", "")),
                 "title": str(row.get("title", "")),
+                "abstract": str(row.get("abstract", "")),
                 "gold_summary": str(row.get("gold_summary", "")).strip(),
                 "bad_summary": str(row.get("bad_summary", "")).strip(),
                 "gold_source": str(row.get("gold_source", "")),

@@ -24,6 +24,9 @@ Available dataset/config variants:
   - the hand-curated `200`-pair refresh built from the original pool plus targeted gap-fill generation
   - keeps all seven axes at target after manual review
   - preserves curation metadata in the exported dataset for later analysis
+- `gemma_3_270m_it_title_abstract_attn_1400_dpo_balanced200_curated_v2.yaml`
+  - the corrected hand-curated `200`-pair refresh with preserved abstract text
+  - use this instead of the earlier curated `v1` export
 
 Typical setup order:
 
@@ -65,6 +68,39 @@ Typical setup order:
      --axis-target side_detail_fixation=30 \
      --axis-target wrong_entity=25 \
      --output-dir hf_dataset/releases/recent_3y_balanced_5000_pilot_v2/dpo/title_abstract_preference_balanced200_curated_v1 \
+     --overwrite
+   ```
+
+   Current corrected curated export:
+
+   ```bash
+   python3 scripts/prepare_dpo_curation_bundle.py \
+     --source-jsonl hf_bucket/experiments/hard_negative_pack_v1/correction_pack_25_per_axis_v1_20260420/hard_negative_pack.jsonl \
+     --source-jsonl hf_bucket/experiments/hard_negative_pack_v1/correction_pack_25_per_axis_v1_20260420/generated_negative_candidates.jsonl \
+     --source-jsonl hf_bucket/experiments/hard_negative_pack_v1/correction_pack_25_per_axis_v1_20260420/natural_negative_candidates.jsonl \
+     --source-jsonl hf_bucket/experiments/hard_negative_pack_v1/dpo_gap_fill_50_v1_20260421/generated_negative_candidates.jsonl \
+     --source-jsonl hf_bucket/experiments/hard_negative_pack_v1/dpo_gap_fill_50_v1_20260421/natural_negative_candidates.jsonl \
+     --reference-dataset-dir hf_dataset/releases/recent_3y_balanced_5000_pilot_v2/dpo/title_abstract_preference_balanced200_v1 \
+     --seed-bundle-dir hf_bucket/experiments/dpo/curation/title_abstract_preference_balanced200_gapfill_pool_v1 \
+     --output-dir hf_bucket/experiments/dpo/curation/title_abstract_preference_balanced200_gapfill_pool_v2 \
+     --overwrite
+
+   python3 scripts/materialize_dpo_curation.py \
+     --bundle-dir hf_bucket/experiments/dpo/curation/title_abstract_preference_balanced200_gapfill_pool_v2 \
+     --output-dir hf_bucket/experiments/dpo/curation/title_abstract_preference_balanced200_gapfill_pool_v2/curated_dataset \
+     --overwrite
+
+   python3 scripts/prepare_dpo_dataset.py \
+     --input-jsonl hf_bucket/experiments/dpo/curation/title_abstract_preference_balanced200_gapfill_pool_v2/curated_dataset/curated_candidates.jsonl \
+     --allowed-gold-sources release_training_row,generated_correction \
+     --axis-target invented_number=31 \
+     --axis-target wrong_number_binding=31 \
+     --axis-target title_restatement=31 \
+     --axis-target too_generic=30 \
+     --axis-target reversed_polarity=22 \
+     --axis-target side_detail_fixation=30 \
+     --axis-target wrong_entity=25 \
+     --output-dir hf_dataset/releases/recent_3y_balanced_5000_pilot_v2/dpo/title_abstract_preference_balanced200_curated_v2 \
      --overwrite
    ```
 
@@ -116,6 +152,14 @@ Typical setup order:
    hf_bucket/experiments/dpo/runtime/py312/bin/python \
      scripts/run_dpo_gemma.py \
      --config configs/dpo/gemma_3_270m_it_title_abstract_attn_1400_dpo_balanced200_curated_v1.yaml
+   ```
+
+   Current corrected curated run:
+
+   ```bash
+   hf_bucket/experiments/dpo/runtime/py312/bin/python \
+     scripts/run_dpo_gemma.py \
+     --config configs/dpo/gemma_3_270m_it_title_abstract_attn_1400_dpo_balanced200_curated_v2.yaml
    ```
 
 Post-train holdout comparison:

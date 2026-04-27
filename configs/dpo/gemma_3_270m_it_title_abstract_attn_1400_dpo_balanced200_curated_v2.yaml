@@ -1,0 +1,33 @@
+model: "google/gemma-3-270m-it"
+model_path: null
+hf_home: "hf_bucket/experiments/mlx_lora/.hf-home"
+model_dtype: "float32"
+
+converted_adapter_dir: "hf_bucket/experiments/dpo/gemma_3_270m_it_title_abstract_attn_1400_peft_v1"
+dataset_dir: "hf_dataset/releases/recent_3y_balanced_5000_pilot_v2/dpo/title_abstract_preference_balanced200_curated_v2"
+output_dir: "hf_bucket/experiments/dpo/gemma_3_270m_it_title_abstract_attn_1400_dpo_balanced200_curated_v2"
+
+seed: 20260422
+
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 2
+gradient_accumulation_steps: 4
+num_train_epochs: 4
+learning_rate: 2.0e-6
+beta: 0.1
+loss_type: "sigmoid"
+warmup_ratio: 0.1
+max_prompt_length: 1024
+max_length: 1088
+
+logging_steps: 1
+eval_strategy: "steps"
+eval_steps: 10
+save_strategy: "steps"
+save_steps: 10
+save_total_limit: 4
+max_grad_norm: 1.0
+dataloader_num_workers: 0
+disable_dropout: true
+report_to: []
+copy_config_into_output: true
