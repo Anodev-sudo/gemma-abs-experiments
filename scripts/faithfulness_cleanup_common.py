@@ -10,12 +10,20 @@ from pathlib import Path
 from statistics import mean
 from typing import Any
 
-from synthetic_summary_runtime import (
-    local_filter_flags,
-    normalize_text,
-    summary_flags,
-    word_tokens,
-)
+try:
+    from scripts.synthetic_summary_runtime import (
+        local_filter_flags,
+        normalize_text,
+        summary_flags,
+        word_tokens,
+    )
+except ImportError:  # pragma: no cover - script execution from scripts/
+    from synthetic_summary_runtime import (
+        local_filter_flags,
+        normalize_text,
+        summary_flags,
+        word_tokens,
+    )
 
 DEFAULT_SOURCE_RELEASE = "hf_dataset/releases/recent_3y_balanced_10746_v1"
 DEFAULT_EXPERIMENT_ROOT = (
@@ -176,6 +184,12 @@ def numeric_mentions(value: str) -> list[dict[str, str]]:
 
 
 def source_supports_token(source_text: str, raw: str, canonical: str | None = None) -> bool:
+    if numeric_mentions(raw):
+        if canonical is None:
+            canonical = canonical_number(raw)
+        source_numbers = {item["canonical"] for item in numeric_mentions(source_text)}
+        return canonical in source_numbers
+
     source_signature = normalized_signature(source_text)
     raw_signature = normalized_signature(raw)
     if raw_signature and raw_signature in source_signature:

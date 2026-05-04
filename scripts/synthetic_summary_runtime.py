@@ -14,6 +14,9 @@ from typing import Any
 
 JSON_BLOCK_RE = re.compile(r"\{.*\}", re.DOTALL)
 INVALID_JSON_ESCAPE_RE = re.compile(r'\\(?!["\\/bfnrtu])')
+MISSING_JSON_COMMA_RE = re.compile(
+    r'(?<=[}\]"0-9eE])(\s*\n\s*)(?="[^"\n]+"\s*:)'
+)
 UGLY_FORMULA_RE = re.compile(
     r"""
     (?:
@@ -30,6 +33,17 @@ UGLY_FORMULA_RE = re.compile(
     """,
     re.VERBOSE,
 )
+DOTTED_ABBREVIATION_RE = re.compile(
+    r"""
+    (?:
+        \b(?:[A-Za-z]\.){2,} |
+        \b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|vs|etc)\. |
+        \b(?:e\.g|i\.e|et\ al)\.
+    )
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+SENTENCE_END_RE = re.compile(r"""[.!?]+(?:['")\]]+)?(?=\s|$)""")
 BANNED_OPENINGS = (
     "this paper",
     "we ",
@@ -133,33 +147,82 @@ def build_messages(spec: dict[str, Any], prompt: dict[str, str]) -> list[dict[st
     return messages
 
 
-def extract_json_object(text: str) -> dict[str, Any]:
+def repair_missing_json_commas(text: str) -> str:
+    return MISSING_JSON_COMMA_RE.sub(r",\1", text)
+
+
+def _json_loads_with_repairs(text: str) -> tuple[dict[str, Any], str, list[str]]:
+    attempts: list[tuple[str, list[str]]] = [(text, [])]
+    escaped = INVALID_JSON_ESCAPE_RE.sub(r"\\\\", text)
+    if escaped != text:
+        attempts.append((escaped, ["invalid_json_escape"]))
+    comma_repaired = repair_missing_json_commas(text)
+    if comma_repaired != text:
+        attempts.append((comma_repaired, ["missing_json_commas"]))
+    if escaped != text:
+        escaped_comma_repaired = repair_missing_json_commas(escaped)
+        if escaped_comma_repaired != escaped:
+            attempts.append(
+                (
+                    escaped_comma_repaired,
+                    ["invalid_json_escape", "missing_json_commas"],
+                )
+            )
+
+    first_error: json.JSONDecodeError | None = None
+    for candidate, repairs in attempts:
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError as exc:
+            if first_error is None:
+                first_error = exc
+            continue
+        if not isinstance(parsed, dict):
+            raise ValueError("Model JSON response was not an object")
+        return parsed, candidate, repairs
+    if first_error is not None:
+        raise first_error
+    raise json.JSONDecodeError("Could not parse JSON", text, 0)
+
+
+def extract_json_object_with_metadata(text: str) -> tuple[dict[str, Any], str, list[str]]:
     cleaned = text.strip()
     if cleaned.startswith("```"):
         cleaned = re.sub(r"^```[a-zA-Z0-9_-]*\n?", "", cleaned)
         cleaned = re.sub(r"\n?```$", "", cleaned)
     try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        healed = INVALID_JSON_ESCAPE_RE.sub(r"\\\\", cleaned)
-        if healed != cleaned:
-            try:
-                return json.loads(healed)
-            except json.JSONDecodeError:
-                cleaned = healed
+        return _json_loads_with_repairs(cleaned)
+    except json.JSONDecodeError as original_error:
         match = JSON_BLOCK_RE.search(cleaned)
         if not match:
-            raise
+            raise original_error
         block = match.group(0)
         try:
-            return json.loads(block)
+            parsed, parse_text, repairs = _json_loads_with_repairs(block)
         except json.JSONDecodeError:
-            healed_block = INVALID_JSON_ESCAPE_RE.sub(r"\\\\", block)
-            return json.loads(healed_block)
+            raise original_error
+        return parsed, parse_text, ["json_block", *repairs]
+
+
+def extract_json_object(text: str) -> dict[str, Any]:
+    parsed, _, _ = extract_json_object_with_metadata(text)
+    return parsed
 
 
 def extract_message_content(body: dict[str, Any]) -> str:
-    message = body["choices"][0]["message"]
+    choices = body.get("choices")
+    if not isinstance(choices, list) or not choices:
+        error = body.get("error")
+        if isinstance(error, dict):
+            message_text = str(error.get("message", "")).strip()
+            code = str(error.get("code", "")).strip()
+            detail = " ".join(part for part in (code, message_text) if part)
+            raise ValueError(f"Model response did not include choices. {detail}")
+        raise ValueError(
+            "Model response did not include choices. "
+            f"top-level keys: {', '.join(sorted(str(key) for key in body.keys()))}"
+        )
+    message = choices[0]["message"]
     content = message.get("content")
     if isinstance(content, str):
         return content
@@ -182,8 +245,74 @@ def extract_message_content(body: dict[str, Any]) -> str:
             value = message.get(key)
             if isinstance(value, str):
                 return value
-        raise ValueError("Model response did not include message content.")
+        finish_reason = str(choices[0].get("finish_reason", "")).strip()
+        message_keys = ", ".join(sorted(str(key) for key in message.keys()))
+        raise ValueError(
+            "Model response did not include message content. "
+            f"finish_reason={finish_reason} message_keys={message_keys}"
+        )
     return str(content)
+
+
+def exception_summary(exc: Exception) -> str:
+    if isinstance(exc, urllib.error.HTTPError):
+        detail = ""
+        try:
+            body = exc.read().decode("utf-8", errors="replace")
+            parsed = json.loads(body)
+            error = parsed.get("error") if isinstance(parsed, dict) else None
+            if isinstance(error, dict):
+                detail = str(error.get("message", "")).strip()
+            elif body.strip():
+                detail = body.strip()
+        except Exception:
+            detail = ""
+        summary = f"HTTP {exc.code}"
+        if detail:
+            summary += f": {detail}"
+        return summary[:500]
+    text = str(exc).strip()
+    if not text:
+        return type(exc).__name__
+    return text[:500]
+
+
+def safe_log_name(value: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "_", value.strip())
+    return cleaned.strip("._") or "attempt"
+
+
+def write_raw_json_attempt(
+    *,
+    attempt_log_dir: Path | None,
+    label: str,
+    attempt: int,
+    raw_text: str,
+    raw_response: dict[str, Any],
+    parse_text: str,
+    status: str,
+    error: Exception | None = None,
+    repairs: list[str] | None = None,
+) -> None:
+    if attempt_log_dir is None:
+        return
+    attempt_log_dir.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "label": label,
+        "attempt": attempt,
+        "status": status,
+        "repairs": repairs or [],
+        "error_type": type(error).__name__ if error is not None else "",
+        "error": str(error) if error is not None else "",
+        "raw_text": raw_text,
+        "parse_text": parse_text,
+        "raw_response": raw_response,
+    }
+    path = attempt_log_dir / f"{safe_log_name(label)}_attempt_{attempt:02d}_{status}.json"
+    path.write_text(
+        json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def post_chat_completion(
@@ -197,6 +326,7 @@ def post_chat_completion(
     timeout: int,
     response_format: dict[str, Any] | None = None,
     plugins: list[dict[str, Any]] | None = None,
+    provider: dict[str, Any] | None = None,
     reasoning: dict[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     url = api_base.rstrip("/") + "/chat/completions"
@@ -210,6 +340,8 @@ def post_chat_completion(
         payload["response_format"] = response_format
     if plugins:
         payload["plugins"] = plugins
+    if provider:
+        payload["provider"] = provider
     if reasoning:
         payload["reasoning"] = reasoning
     headers = {
@@ -235,7 +367,7 @@ def post_chat_completion(
 
 
 def is_retryable_error(exc: Exception) -> bool:
-    if isinstance(exc, ValueError) and str(exc) == "Model response did not include message content.":
+    if isinstance(exc, ValueError) and str(exc).startswith("Model response did not include"):
         return True
     if isinstance(exc, TimeoutError | socket.timeout):
         return True
@@ -261,6 +393,7 @@ def request_with_retries(
     retry_backoff_seconds: float,
     response_format: dict[str, Any] | None = None,
     plugins: list[dict[str, Any]] | None = None,
+    provider: dict[str, Any] | None = None,
     reasoning: dict[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     attempt = 0
@@ -277,6 +410,7 @@ def request_with_retries(
                 timeout=timeout,
                 response_format=response_format,
                 plugins=plugins,
+                provider=provider,
                 reasoning=reasoning,
             )
         except Exception as exc:
@@ -285,7 +419,8 @@ def request_with_retries(
             sleep_seconds = retry_backoff_seconds * attempt
             print(
                 f"[retry] {label} failed on attempt {attempt}/{max_retries + 1}: "
-                f"{type(exc).__name__}. sleeping {sleep_seconds:.1f}s before retry...",
+                f"{type(exc).__name__}: {exception_summary(exc)}. "
+                f"sleeping {sleep_seconds:.1f}s before retry...",
                 file=sys.stderr,
                 flush=True,
             )
@@ -306,8 +441,10 @@ def request_json_with_retries(
     retry_backoff_seconds: float,
     response_format: dict[str, Any] | None = None,
     plugins: list[dict[str, Any]] | None = None,
+    provider: dict[str, Any] | None = None,
     assistant_prefill: str | None = None,
     reasoning: dict[str, Any] | None = None,
+    attempt_log_dir: Path | None = None,
 ) -> tuple[dict[str, Any], str, dict[str, Any]]:
     attempt = 0
     while True:
@@ -325,15 +462,43 @@ def request_json_with_retries(
             retry_backoff_seconds=retry_backoff_seconds,
             response_format=response_format,
             plugins=plugins,
+            provider=provider,
             reasoning=reasoning,
         )
         try:
             parse_text = raw_text
             if assistant_prefill:
                 parse_text = assistant_prefill + raw_text.lstrip()
-            parsed = extract_json_object(parse_text)
-            return parsed, parse_text, raw_response
-        except json.JSONDecodeError:
+            parsed, final_parse_text, repairs = extract_json_object_with_metadata(parse_text)
+            if repairs:
+                write_raw_json_attempt(
+                    attempt_log_dir=attempt_log_dir,
+                    label=label,
+                    attempt=attempt,
+                    raw_text=raw_text,
+                    raw_response=raw_response,
+                    parse_text=parse_text,
+                    status="salvaged",
+                    repairs=repairs,
+                )
+                print(
+                    f"[repair] {label} salvaged malformed JSON on attempt {attempt}: "
+                    f"{', '.join(repairs)}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+            return parsed, final_parse_text, raw_response
+        except json.JSONDecodeError as exc:
+            write_raw_json_attempt(
+                attempt_log_dir=attempt_log_dir,
+                label=label,
+                attempt=attempt,
+                raw_text=raw_text,
+                raw_response=raw_response,
+                parse_text=parse_text,
+                status="malformed",
+                error=exc,
+            )
             if attempt > max_retries:
                 raise
             sleep_seconds = retry_backoff_seconds * attempt
@@ -368,11 +533,22 @@ def normalized_token_signature(value: str) -> str:
     return " ".join(tokens)
 
 
+def protect_abbreviation_periods(value: str) -> str:
+    def replace(match: re.Match[str]) -> str:
+        return match.group(0).replace(".", "<DOT>")
+
+    return DOTTED_ABBREVIATION_RE.sub(replace, value)
+
+
 def sentence_count(value: str) -> int:
     normalized = normalize_text(value)
     if not normalized:
         return 0
-    return len(re.findall(r"""[.!?]+(?:['")\]]+)?(?=\s|$)""", normalized))
+    protected = protect_abbreviation_periods(normalized)
+    endings = SENTENCE_END_RE.findall(protected)
+    if endings:
+        return len(endings)
+    return 1 if word_tokens(normalized) else 0
 
 
 def title_overlap_ratio(summary: str, title: str) -> float:

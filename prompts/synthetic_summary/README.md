@@ -69,6 +69,15 @@ Alternate reviewer prompts:
 - `qwen3_235b_a22b_2507_faithfulness_cleanup_rewriter_v1.json`
   - Intended input: `title + abstract + existing summary + heuristic risk flags`
   - Goal: draft safer SFT targets for high-risk accepted rows by removing unsupported numbers, entity labels, mechanisms, causal claims, and overstrong wording.
+- `kimi_k2_6_q4_correction_salvage_rewriter_v1.json`
+  - Intended input: `title + abstract + q4 bad summary + q4 review tags + previous failed correction`
+  - Goal: generate concise no-reasoning q4 correction targets for locally ineligible rows.
+- `kimi_k2_6_q4_correction_salvage_short_rewriter_v1.json`
+  - Intended input: same as the Kimi salvage prompt, with a stricter compression target
+  - Goal: salvage a small number of overlong correction rows without reopening the reasoning-model branch.
+- `qwen3_235b_a22b_2507_q4_correction_verifier_generic_v1.json`
+  - Intended input: `title + abstract + q4 bad summary + corrected summary`
+  - Goal: independently verify Kimi correction targets before materializing q4 hardening rows.
 
 Design notes:
 
@@ -81,6 +90,9 @@ Design notes:
 - The DeepSeek rewrite reviewer remains available when a heavier second pass is wanted.
 - The hard-negative generator and verifier prompts are for second-stage correction-data construction, not the main 5k synthetic-summary pipeline.
 - The faithfulness cleanup rewriter is for SFT overlay construction, not DPO. It drafts candidate replacements that still require manual agent review before release materialization.
+- The compact q4 correction path is Kimi no-reasoning rewrite plus Qwen
+  verification. The abandoned DeepSeek/reasoning and Qwen 3.5/3.6 repair probes
+  were pruned after the combined q4 hardening release was promoted.
 - The current default hard-negative pair in `scripts/build_hard_negative_pack.py` is `deepseek_v32_hard_negative_generator_v2_precision.json` plus `qwen3_235b_a22b_2507_hard_negative_verifier_v6_precision_numeric.json`.
 - That default keeps the precision-first consistency rules, removes contradiction admissions, and restores `wrong_number_binding` coverage by using structured one-slot numeric swaps before falling back to freeform generation.
 - The `v3`, `v5`, `v2`, and `v4` hard-negative verifiers are older experiment variants retained for comparison and troubleshooting.

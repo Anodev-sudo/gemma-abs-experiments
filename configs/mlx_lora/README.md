@@ -35,6 +35,46 @@ Current configs:
   - Student input: `title_abstract`
   - Goal: continue the preferred `0001400` title+abstract adapter on a larger
     reshuffled base dataset instead of starting over from scratch
+- `gemma_3_270m_it_title_abstract_10746_faithfulness_overlay_1400_v2.yaml`
+  - Base model: `google/gemma-3-270m-it`
+  - Parent checkpoint: `base_aggressive_3600`
+  - Dataset: correction-only `1,400`-row faithfulness/specificity overlay
+  - Student input: `title_abstract`
+  - Goal: reduce unsupported numbers, mechanisms, entity labels, causal drift,
+    and overstrong claims without collapsing useful grounded specificity
+- `gemma_3_270m_it_title_abstract_10746_q4_hardening_combined_v1_lr_1e_6.yaml`
+  - Base model: raw MLX q4 export of `google/gemma-3-270m-it`
+  - Parent checkpoint: q4 faithfulness overlay `0000600`
+  - Dataset: combined `148`-row q4 hardening release
+  - Student input: `title_abstract`
+  - Goal: harden the q4 lineage against severe numeric, polarity, entity, and
+    notation failures while keeping the adapter small and fast
+
+Current promoted 270M title+abstract adapter:
+
+```text
+hf_bucket/experiments/mlx_lora/gemma_3_270m_it_title_abstract_10746_q4_hardening_combined_v1_lr_1e_6/adapters/0000300_adapters.safetensors
+```
+
+Promotion pointer:
+
+```text
+hf_bucket/experiments/mlx_lora/promoted/gemma_3_270m_it_title_abstract_current.json
+```
+
+Promotion basis:
+
+- `q4_hardening_combined_v1_lr_1e_6_300` uses the raw MLX q4 base
+  `quantized_models/google_gemma_3_270m_it/q4_g64` plus the selected LoRA
+  checkpoint above.
+- On the fixed q4-hardening tripwire, q4 wins were `56` vs `30` for q8 and
+  q4-only severe failures dropped from the prior hardening result of `12` to
+  `4`.
+- On fresh blinded 100-paper reviews, q4 scored `54` vs `37` on the first run
+  and `44` vs `51` on the repeat. Severe flags stayed low: q4-only severe was
+  `3` on the first fresh set and `5` on the repeat.
+- The q8 `faith_overlay_1400_v2_final_600` details are retained in the promoted
+  pointer under `previous_promoted` for fallback context.
 
 Why this setup:
 

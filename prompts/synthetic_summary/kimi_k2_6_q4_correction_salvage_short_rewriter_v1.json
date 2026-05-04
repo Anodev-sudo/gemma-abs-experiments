@@ -1,0 +1,85 @@
+{
+  "prompt_version": "kimi_k2_6_q4_correction_salvage_short_rewriter_v1",
+  "role": "q4_correction_salvage_short_rewriter",
+  "teacher_input": "title_abstract_q4_failure_review_notes_previous_failed_correction",
+  "student_target": "q4_correction_overlay_salvage_short",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q4_correction_salvage_short_rewriter_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["rewrite", "drop"]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "invented_number",
+                "wrong_number_binding",
+                "numeric_error",
+                "unsupported_number",
+                "unsupported_entity",
+                "unsupported_entity_label",
+                "unsupported_mechanism",
+                "unsupported_causal_claim",
+                "overstrong_claim",
+                "polarity_flip",
+                "polarity_risk",
+                "misses_point",
+                "malformed_repetition",
+                "non_answer",
+                "title_rehash",
+                "too_generic",
+                "style_only",
+                "copies_q4_failure",
+                "style_drift",
+                "local_filter",
+                "none"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "word_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 12
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "evidence_span",
+          "summary",
+          "word_count",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You salvage stubborn formatting failures for a small paper-feed summary model.\nReturn one JSON object only.\n\nGoal\n- Write a faithful one-sentence mobile-feed summary from the title and abstract.\n- Fix the original q4 failure and the previous failed correction attempt.\n- Keep the house style: direct, useful, sentence case, concrete, not academic.\n\nSource of truth\n- The title and abstract are the only authority.\n- The original q4 summary is a known bad output to avoid.\n- The previous correction is a failed attempt: use it only as a clue about what to preserve or fix.\n- Reviewer notes identify likely failure modes, but the source text decides.\n\nHard formatting rules for rewrite\n- Summary must be exactly one sentence.\n- Summary must contain 10 to 12 words, inclusive.\n- Aim for 11 words if possible.\n- word_count must equal the actual number of whitespace-separated words in summary.\n- End with exactly one period.\n- Do not put any other period, question mark, or exclamation mark inside the summary.\n- Do not use abbreviations with periods, such as U.S., i.e., e.g., or et al.\n- No semicolons.\n- No formulas or dense notation.\n- No openings like \"This paper\", \"We propose\", \"The authors\", or \"In this work\".\n- Do not merely rephrase the title.\n- Do not copy the original q4 summary or the previous failed correction.\n\nCompression guidance\n- Keep the central supported object and takeaway; drop secondary clauses.\n- Prefer general supported labels over long method names when the exact name is not needed.\n- For math or physics papers, summarize the contribution plainly instead of carrying notation.\n- For benchmark papers, name the evaluation target and main supported finding only.\n\nHard faithfulness rules\n- Do not include a number, percentage, unit, named method, acronym, entity label, mechanism, comparison, causal direction, or effect direction unless directly supported by the title or abstract.\n- If the abstract only says something was studied, do not say it improves, reduces, prevents, explains, or enables something unless that outcome is explicit.\n- Prefer supported generality over invented precision.\n\nDecision policy\n- rewrite: use whenever a faithful, useful, 10-to-12-word summary is available.\n- drop: use only if a faithful repair would require unsupported detail, title rehashing, dense notation, or bad formatting.\n\nOutput rules\n- For rewrite, summary is the final corrected sentence and evidence_span is a short source phrase that supports it.\n- For drop, summary and evidence_span must be empty, word_count must be 0, and reason_span briefly explains why.\n- issue_tags should name the failure repaired, or none if only style/format changed.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nSALVAGE REASON:\n{repair_source}\n\nQ4 SEVERITY SOURCES:\n{q4_severity_sources}\n\nQ4 ISSUE TAGS:\n{q4_issue_tags}\n\nORIGINAL REVIEWER NOTES:\n{reviewer_notes}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nORIGINAL Q4 BAD SUMMARY TO AVOID:\n{q4_summary}\n\nPREVIOUS FAILED CORRECTION DECISION:\n{previous_deepseek_decision}\n\nPREVIOUS FAILED CORRECTION SUMMARY:\n{previous_deepseek_summary}\n\nPREVIOUS FAILED CORRECTION REPORTED WORD COUNT:\n{previous_deepseek_reported_word_count}\n\nPREVIOUS FAILED CORRECTION LOCAL FLAGS:\n{previous_deepseek_local_filter_flags}\n\nPREVIOUS FAILED CORRECTION FORMAT FLAGS:\n{previous_deepseek_format_audit_flags}\n\nPREVIOUS FAILED CORRECTION REASON:\n{previous_deepseek_reason_span}"
+}

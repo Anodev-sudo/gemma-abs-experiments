@@ -12,9 +12,6 @@ from pathlib import Path
 import random
 from typing import Any
 
-from mlx_lm import batch_generate, load
-from mlx_lm.sample_utils import make_sampler
-
 DEFAULT_RELEASE_DIR = "hf_dataset/releases/recent_3y_balanced_5000_pilot_v2"
 DEFAULT_CORPUS_JSONL = (
     "hf_dataset/corpora/recent_3y_balanced/arxiv_abstract_corpus_weighted_20000.jsonl"
@@ -41,6 +38,7 @@ DEFAULT_INPUT_MODE = "title_abstract"
 class VariantSpec:
     label: str
     kind: str
+    model_path: str | None
     adapter_dir: str | None
     checkpoint_path: str | None
     adapter_load_path: str | None
@@ -125,6 +123,22 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Optional explicit base model path or repo id. Defaults to the locally "
             "cached Gemma snapshot if present."
+        ),
+    )
+    parser.add_argument(
+        "--left-model-path",
+        default=None,
+        help=(
+            "Optional explicit model path or repo id for the left variant. "
+            "Use this when comparing two standalone converted MLX models."
+        ),
+    )
+    parser.add_argument(
+        "--right-model-path",
+        default=None,
+        help=(
+            "Optional explicit model path or repo id for the right variant. "
+            "Use this when comparing two standalone converted MLX models."
         ),
     )
     parser.add_argument(
@@ -480,6 +494,7 @@ def materialize_checkpoint_view(
 def resolve_variant(
     *,
     label: str,
+    model_path_value: str | None,
     adapter_dir_value: str | None,
     checkpoint_value: str | None,
     review_views_root: Path,
@@ -491,7 +506,8 @@ def resolve_variant(
             )
         return VariantSpec(
             label=label,
-            kind="base",
+            kind="standalone_model" if model_path_value else "base",
+            model_path=model_path_value,
             adapter_dir=None,
             checkpoint_path=None,
             adapter_load_path=None,
@@ -506,6 +522,7 @@ def resolve_variant(
         return VariantSpec(
             label=label,
             kind="final_adapter",
+            model_path=model_path_value,
             adapter_dir=str(adapter_dir),
             checkpoint_path=None,
             adapter_load_path=str(adapter_dir),
@@ -522,6 +539,7 @@ def resolve_variant(
     return VariantSpec(
         label=label,
         kind="checkpoint_view",
+        model_path=model_path_value,
         adapter_dir=str(adapter_dir),
         checkpoint_path=str(checkpoint_path),
         adapter_load_path=str(adapter_view_path),
@@ -529,7 +547,19 @@ def resolve_variant(
     )
 
 
-def resolve_model_path(args: argparse.Namespace, variants: list[VariantSpec]) -> str:
+def resolve_model_path(args: argparse.Namespace, variants: list[VariantSpec]) -> str | None:
+    explicit_variant_paths = {variant.model_path for variant in variants if variant.model_path}
+    if explicit_variant_paths:
+        if args.model_path:
+            raise ValueError(
+                "Pass either --model-path or per-side model paths, not both."
+            )
+        if len(explicit_variant_paths) != len(variants):
+            raise ValueError(
+                "Per-side model paths must be provided for every variant in this comparison."
+            )
+        return None
+
     if args.model_path:
         return args.model_path
 
@@ -551,6 +581,14 @@ def resolve_model_path(args: argparse.Namespace, variants: list[VariantSpec]) ->
     return repo_id
 
 
+def model_path_for_variant(default_model_path: str | None, variant: VariantSpec) -> str:
+    if variant.model_path:
+        return variant.model_path
+    if default_model_path is None:
+        raise ValueError(f"Missing model path for variant {variant.label}")
+    return default_model_path
+
+
 def generate_outputs(
     prepared_rows: list[dict[str, Any]],
     *,
@@ -561,6 +599,9 @@ def generate_outputs(
     temp: float,
     top_p: float,
 ) -> list[dict[str, str]]:
+    from mlx_lm import batch_generate, load
+    from mlx_lm.sample_utils import make_sampler
+
     print(f"[sample:{variant.label}] loading model from {model_path}")
     if variant.adapter_load_path is None:
         print(f"[sample:{variant.label}] running without adapters")
@@ -742,6 +783,15 @@ def build_generated_rows(
                 "outputs_match": left_output["normalized"] == right_output["normalized"],
             }
         )
+        for optional_key in (
+            "eval_id",
+            "split",
+            "selection_bucket",
+            "q4_hardening_axes",
+            "umbrella_category",
+        ):
+            if optional_key in row:
+                generated_rows[-1][optional_key] = row[optional_key]
     return generated_rows
 
 
@@ -771,18 +821,22 @@ def main() -> None:
     review_views_root = Path(args.review_views_root)
     left_variant = resolve_variant(
         label=args.left_label,
+        model_path_value=args.left_model_path,
         adapter_dir_value=args.left_adapter_dir,
         checkpoint_value=args.left_checkpoint,
         review_views_root=review_views_root,
     )
     right_variant = resolve_variant(
         label=args.right_label,
+        model_path_value=args.right_model_path,
         adapter_dir_value=args.right_adapter_dir,
         checkpoint_value=args.right_checkpoint,
         review_views_root=review_views_root,
     )
 
     model_path = resolve_model_path(args, [left_variant, right_variant])
+    left_model_path = model_path_for_variant(model_path, left_variant)
+    right_model_path = model_path_for_variant(model_path, right_variant)
 
     if args.output_dir:
         output_dir = Path(args.output_dir)
@@ -797,7 +851,7 @@ def main() -> None:
 
     left_outputs = generate_outputs(
         prepared_rows,
-        model_path=model_path,
+        model_path=left_model_path,
         variant=left_variant,
         batch_size=args.batch_size,
         max_tokens=args.max_tokens,
@@ -806,7 +860,7 @@ def main() -> None:
     )
     right_outputs = generate_outputs(
         prepared_rows,
-        model_path=model_path,
+        model_path=right_model_path,
         variant=right_variant,
         batch_size=args.batch_size,
         max_tokens=args.max_tokens,
@@ -830,7 +884,6 @@ def main() -> None:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "prompt_spec": str(prompt_spec_path),
         "prompt_version": prompt_spec["prompt_version"],
-        "base_model_path": model_path,
         "sample_size": len(sampled_rows),
         "batch_size": args.batch_size,
         "input_mode": args.input_mode,
@@ -839,6 +892,9 @@ def main() -> None:
         "top_p": args.top_p,
         "blinded_review_default": args.blinded,
         "sample_source": sample_meta,
+        "base_model_path": model_path,
+        "left_model_path": left_model_path,
+        "right_model_path": right_model_path,
         "left_variant": asdict(left_variant),
         "right_variant": asdict(right_variant),
         "matching_summary_count": sum(
