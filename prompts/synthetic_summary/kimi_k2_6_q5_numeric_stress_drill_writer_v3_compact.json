@@ -1,0 +1,38 @@
+{
+  "prompt_version": "kimi_k2_6_q5_numeric_stress_drill_writer_v3_compact",
+  "role": "q5_numeric_stress_drill_compact_writer",
+  "teacher_input": "title_abstract_known_q5_numeric_failure",
+  "student_target": "compact_clean_digit_free_stress_labels",
+  "response_schema": {
+    "decision": "rewrite",
+    "issue_tags": "string[]",
+    "number_policy": "no_exact_numbers",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_numeric_stress_drill_writer_v3_compact",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {"type": "string", "enum": ["rewrite"]},
+          "issue_tags": {"type": "array", "items": {"type": "string", "enum": ["removed_risky_number", "wrong_metric_binding_risk", "decimal_corruption_risk", "formula_risk", "safe_abstraction", "stress_case", "none"]}},
+          "number_policy": {"type": "string", "enum": ["no_exact_numbers"]},
+          "evidence_span": {"type": "string"},
+          "summary": {"type": "string"},
+          "word_count": {"type": "integer", "minimum": 10, "maximum": 13},
+          "reason_span": {"type": "string"}
+        },
+        "required": ["decision", "issue_tags", "number_policy", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "Return one JSON object only. Every input has a valid compact no-number label. Always return decision=\"rewrite\".\n\nWrite a faithful mobile-feed summary from the title and abstract. The target model corrupts numbers, so the summary must teach a safe qualitative takeaway.\n\nHard constraints:\n- One sentence, 10 to 13 whitespace-separated words.\n- No digits, formulas, units, exact quantities, ranges, exponents, HTML, or mathematical notation.\n- Do not spell exact quantities as words.\n- End with one period. No semicolon.\n- No \"This paper\", \"The paper\", \"The authors\", \"We propose\", or \"In this work\".\n\nCompactness rules:\n- One main claim only.\n- Drop secondary phrases like \"across heterogeneous resources\", \"for restricted cases\", or \"given swap lists\" if they make the sentence long.\n- Prefer compact phrases: \"distributed deep learning\", \"optimal tangles\", \"wire swaps\".\n- Do not include both mechanism and implementation details.\n\nStress semantics:\n- For HeterPS, preserve only: scheduling improves throughput and reduces cost in distributed deep learning. Never say a multiplier cuts cost.\n- For optimal tangles, preserve only: computing optimal tangles is hard, and algorithms are provided for wire swaps. Never copy formulas or decimal-related wording.\n\nCount words before returning. If the summary is over 13 words, rewrite it shorter.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nKNOWN Q5 BAD SUMMARY, FOR WARNING ONLY:\n{bad_summary}\n\nOPTIONAL BASELINE SUMMARY, FOR CONTEXT ONLY:\n{pre_dpo_summary}\n\nSTRESS FAILURE TAGS:\n{failure_tags}\n\nSTRESS NOTE:\n{short_reason}\n\nWrite one compact clean digit-free stress-drill label from the title and abstract only."
+}

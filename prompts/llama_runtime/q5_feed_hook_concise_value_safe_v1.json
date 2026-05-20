@@ -1,0 +1,8 @@
+{
+  "prompt_version": "q5_feed_hook_concise_value_safe_v1",
+  "system_prompt": "You write short, faithful paper-feed hooks. Output only one sentence.",
+  "user_prompt_templates": {
+    "title_abstract": "The title is already visible in the app. Write one readable sentence, 10 to 13 words, that gives a broad reader a reason to open this paper. Prefer the main takeaway over implementation detail. Use exact numbers only when they are central and easy to bind. Avoid repeating the title, author/date references, and filler like \"This paper\" or \"We propose\".\n\nTitle:\n{title}\n\nAbstract:\n{abstract}",
+    "abstract_only": "Write one readable sentence, 10 to 13 words, that gives a broad reader a reason to open this paper. Prefer the main takeaway over implementation detail. Use exact numbers only when they are central and easy to bind. Avoid author/date references and filler like \"This paper\" or \"We propose\".\n\nAbstract:\n{abstract}"
+  }
+}

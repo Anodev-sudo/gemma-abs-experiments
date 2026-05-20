@@ -1,0 +1,64 @@
+{
+  "prompt_version": "kimi_k2_6_q5_broad_basin_cleanup_rewriter_v1",
+  "role": "q5_broad_basin_cleanup_rewriter",
+  "teacher_input": "title_abstract_current_broad_summary_old_base_summary_q8_hint_blind_review_notes",
+  "student_target": "broad_base_cleanup_target",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_broad_basin_cleanup_rewriter_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": { "type": "string", "enum": ["rewrite", "drop"] },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "invented_number",
+                "wrong_number_binding",
+                "numeric_error",
+                "unsupported_number",
+                "unsupported_entity",
+                "unsupported_entity_label",
+                "unsupported_mechanism",
+                "unsupported_causal_claim",
+                "overstrong_claim",
+                "polarity_flip",
+                "polarity_risk",
+                "misses_point",
+                "malformed_repetition",
+                "non_answer",
+                "title_rehash",
+                "too_generic",
+                "copies_q5_failure",
+                "style_drift",
+                "local_filter",
+                "none"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "evidence_span": { "type": "string" },
+          "summary": { "type": "string" },
+          "word_count": { "type": "integer", "minimum": 0, "maximum": 15 },
+          "reason_span": { "type": "string" }
+        },
+        "required": ["decision", "issue_tags", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You write cleanup training targets for a small paper-feed summary model. Return one JSON object only.\n\nContext\n- The current broad-base q5 summary lost a blind comparison or both sides were judged bad.\n- The old-base summary and q8 summary are hints only; either may be wrong.\n- The title and abstract are the only authority.\n\nGoal\n- Write one faithful, simple, readable, informative feed hook.\n- The target should make a broad reader more likely to open the paper.\n- Prefer a clean central hook over full abstract compression.\n- Preserve the broad-base strengths where supported, but remove dense, brittle, malformed, or over-specific wording.\n- If the old-base summary was better, keep its useful simplicity only when the abstract supports it.\n\nStyle rules\n- Summary must be exactly one sentence.\n- Summary must contain 10 to 15 whitespace-separated words, inclusive.\n- Count every whitespace-separated word before answering.\n- End with exactly one period.\n- No openings like \"This paper\", \"We propose\", \"The authors\", or \"In this work\".\n- Do not merely rephrase the title.\n- Use ordinary prose, not formula shorthand, equations, LaTeX, semicolons, or dense notation.\n- Avoid trying to include every detail.\n\nFaithfulness rules\n- Preserve polarity, direction, limitation, uncertainty, and scope.\n- Do not claim improvement, reduction, causality, proof, prevention, or superiority unless explicit.\n- Do not name entities, methods, datasets, diseases, materials, metrics, or mechanisms unless directly supported.\n- Use exact numbers only when they are central, readable, and easy to bind correctly.\n- If a value is complex, secondary, formula-like, or easy to misbind, paraphrase it qualitatively.\n- Avoid copying unsupported entities, malformed phrases, or wrong bindings from either hint.\n\nDecision policy\n- rewrite: use when a faithful, useful, 10-to-15-word target is available.\n- drop: use when any faithful target would be too vague, too dense, unsupported, or title-only.\n\nOutput rules\n- For rewrite, summary is the final sentence and evidence_span is a short source phrase supporting it.\n- For drop, summary and evidence_span must be empty, word_count must be 0, and reason_span explains why.\n- issue_tags should name the broad-base failure repaired, or none if only style changed.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nBLIND REVIEW SPLIT:\n{blind_review_split}\n\nBROAD-BASE ISSUE TAGS:\n{q5_issue_tags}\n\nBLIND REVIEW NOTE:\n{reviewer_note}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCURRENT BROAD-BASE SUMMARY TO CLEAN:\n{current_broad_summary}\n\nOLD-BASE SUMMARY HINT:\n{old_base_summary}\n\nQ8 SUMMARY HINT:\n{q8_summary}"
+}

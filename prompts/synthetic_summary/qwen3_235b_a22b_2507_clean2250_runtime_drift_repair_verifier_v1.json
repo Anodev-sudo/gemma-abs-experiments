@@ -1,0 +1,75 @@
+{
+  "prompt_version": "qwen3_235b_a22b_2507_clean2250_runtime_drift_repair_verifier_v1",
+  "role": "clean2250_runtime_drift_repair_verifier",
+  "teacher_input": "title_abstract_gguf_bad_summary_peft_reference_candidate_repair",
+  "student_target": "verification_only",
+  "response_schema": {
+    "decision": "accept|reject",
+    "issue_tags": "string[]",
+    "grounding_ok": "boolean",
+    "number_policy_ok": "boolean",
+    "evidence_span": "string",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "qwen3_235b_a22b_2507_clean2250_runtime_drift_repair_verifier_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["accept", "reject"]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "too_long",
+                "too_short",
+                "title_rehash",
+                "not_single_sentence",
+                "bad_opening",
+                "formula_or_symbol",
+                "unsupported_claim",
+                "wrong_object",
+                "wrong_mechanism",
+                "wrong_polarity",
+                "lost_key_takeaway",
+                "too_vague",
+                "too_dense",
+                "awkward",
+                "repetition",
+                "copies_bad_gguf_summary",
+                "peft_reference_unfaithful",
+                "number_policy_failure",
+                "none"
+              ]
+            },
+            "maxItems": 5,
+            "uniqueItems": true
+          },
+          "grounding_ok": {
+            "type": "boolean"
+          },
+          "number_policy_ok": {
+            "type": "boolean"
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": ["decision", "issue_tags", "grounding_ok", "number_policy_ok", "evidence_span", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You are a strict verifier for runtime-drift repair labels in a paper-feed dataset. Return one JSON object only.\n\nThe title and abstract are the only authority. The native PEFT summary is useful context, but it can be wrong. The bad GGUF summary shows the deployed failure to avoid.\n\nAccept only if ALL are true:\n- Candidate is supported by the title and abstract.\n- Candidate gives a concrete reason to open the paper.\n- Candidate is exactly one grammatical sentence.\n- Candidate is 8 to 14 whitespace-separated words inclusive.\n- Candidate ends with one period and has no other sentence-ending punctuation.\n- Candidate avoids title rehash and adds value beyond the title.\n- Candidate does not start with boilerplate such as This paper, The authors, or We propose.\n- Candidate does not invent mechanisms, entities, datasets, applications, causality, certainty, benchmarks, or superiority.\n- Candidate avoids exact numbers unless they are central, correctly bound, and necessary.\n- Candidate avoids formula-like notation, HTML, bracketed notation, repetition, and awkward phrasing.\n- Candidate does not copy the bad GGUF failure unless that output was actually faithful and concise.\n\nReject when uncertain. For accepted rows, use issue_tags=[\"none\"], grounding_ok=true, number_policy_ok=true, and quote a short supporting phrase from the abstract. For rejected rows, issue_tags must not include \"none\" and reason_span must name the actual failure.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nBAD GGUF CHECKPOINT-800 SUMMARY:\n{bad_summary}\n\nNATIVE PEFT CHECKPOINT-800 REFERENCE SUMMARY:\n{q8_summary}\n\nRUNTIME DRIFT FLAGS:\n{failure_family}\n\nWRITER DECISION:\n{writer_decision}\n\nWRITER ISSUE TAGS:\n{writer_issue_tags}\n\nWRITER GROUNDING POLICY:\n{grounding_policy}\n\nWRITER EVIDENCE SPAN:\n{writer_evidence_span}\n\nCANDIDATE REPAIR SUMMARY:\n{repair_summary}\n\nWRITER REASON:\n{writer_reason_span}"
+}

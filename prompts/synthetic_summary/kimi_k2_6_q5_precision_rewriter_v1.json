@@ -1,0 +1,84 @@
+{
+  "prompt_version": "kimi_k2_6_q5_precision_rewriter_v1",
+  "role": "q5_precision_correction_rewriter",
+  "teacher_input": "title_abstract_q5_failure_review_notes",
+  "student_target": "q5_precision_correction_overlay",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_precision_rewriter_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["rewrite", "drop"]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "invented_number",
+                "wrong_number_binding",
+                "numeric_error",
+                "unsupported_number",
+                "unsupported_entity",
+                "unsupported_entity_label",
+                "unsupported_mechanism",
+                "unsupported_causal_claim",
+                "overstrong_claim",
+                "polarity_flip",
+                "polarity_risk",
+                "misses_point",
+                "malformed_repetition",
+                "non_answer",
+                "title_rehash",
+                "too_generic",
+                "copies_q5_failure",
+                "style_drift",
+                "local_filter",
+                "none"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "word_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "evidence_span",
+          "summary",
+          "word_count",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You write corrected training targets for a small paper-feed summary model.\nReturn one JSON object only.\n\nThis is a precision repair pass. The original q5 summary is a bad example. Do not copy its claim structure, metric binding, entity binding, or awkward phrasing.\n\nGoal\n- Write one faithful mobile-feed summary from the title and abstract.\n- Teach the student to be short, specific, and cautious.\n- Prefer a clean supported summary over an impressive one.\n\nSource of truth\n- The title and abstract are the only authority.\n- The q8 summary is only a hint when present, not authority.\n- Reviewer notes identify likely failure modes, but the source text decides.\n\nHard formatting rules for rewrite\n- Summary must be exactly one sentence.\n- Summary must contain 10 to 12 whitespace-separated words, inclusive.\n- Aim for exactly 11 words.\n- Before answering, count every whitespace-separated word in summary.\n- If your draft has more than 12 words, shorten it before answering.\n- If your draft needs 13 or more words to be faithful, choose drop.\n- word_count must equal the actual whitespace-separated word count.\n- End with exactly one period.\n- Do not put any other period, question mark, or exclamation mark inside the summary.\n- Do not use abbreviations with periods, such as U.S., i.e., e.g., or et al.\n- No semicolons, colons, formulas, equations, LaTeX, or dense notation.\n- No openings like \"This paper\", \"We propose\", \"The authors\", or \"In this work\".\n- Do not merely rephrase the title.\n\nFaithfulness rules\n- Avoid numbers unless the number is central and easy to bind correctly.\n- If a source number is used, attach it to exactly the same object, metric, condition, and direction as in the abstract.\n- Never move a number from one metric, group, dataset, condition, or result to another.\n- Do not name a method, dataset, entity, material, disease, metric, or mechanism unless directly supported.\n- If the abstract only says something was studied, do not say it improves, reduces, prevents, explains, enables, or proves anything unless that outcome is explicit.\n- Preserve negation, uncertainty, scope, conditions, and limitations.\n- For hard notation, paraphrase around the contribution instead of copying symbols.\n- For malformed or repetitive q5 outputs, use simpler wording with one clear subject and one clear payoff.\n\nGood repair habits\n- Subject first, payoff second.\n- Use a broad supported label when exact naming would be risky.\n- Omit fragile numbers rather than misbinding them.\n- Prefer \"can help\", \"may support\", or \"is tested for\" when the abstract is cautious.\n- Drop side details if they force the sentence over 12 words.\n\nDecision policy\n- rewrite: use when a faithful, useful, 10-to-12-word summary is available.\n- drop: use when a faithful summary would require unsupported detail, copied title wording, dense notation, or more than 12 words.\n\nOutput rules\n- For rewrite, summary is the final corrected sentence and evidence_span is a short source phrase that supports it.\n- For drop, summary and evidence_span must be empty, word_count must be 0, and reason_span briefly explains why.\n- issue_tags should name the q5 failure repaired, or none if only style changed.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nQ5 SEVERITY SOURCE:\n{q5_severity_source}\n\nQ5 ISSUE TAGS:\n{q5_issue_tags}\n\nBLIND REVIEW NOTE:\n{reviewer_note}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nQ8 SUMMARY HINT:\n{q8_summary}\n\nORIGINAL Q5 BAD SUMMARY TO AVOID:\n{q5_summary}"
+}

@@ -1,0 +1,93 @@
+{
+  "prompt_version": "qwen3_235b_a22b_2507_q5_q8_contrastive_repair_verifier_v2",
+  "role": "q5_q8_contrastive_repair_verifier",
+  "teacher_input": "title_abstract_q8_reference_q5_failure_candidate_repair",
+  "student_target": "verification_only",
+  "response_schema": {
+    "decision": "accept|reject",
+    "issue_tags": "string[]",
+    "grounding_ok": "boolean",
+    "number_policy_ok": "boolean",
+    "evidence_span": "string",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "qwen3_235b_a22b_2507_q5_q8_contrastive_repair_verifier_v2",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "accept",
+              "reject"
+            ]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "contains_digit_or_number",
+                "formula_or_symbol",
+                "wrong_object",
+                "wrong_method",
+                "wrong_mechanism",
+                "wrong_polarity",
+                "lost_q8_hook",
+                "lost_key_result",
+                "lost_caveat",
+                "semantic_drift",
+                "unsupported_claim",
+                "invented_technical_glue",
+                "too_vague",
+                "too_generic",
+                "not_source_grounded",
+                "too_long",
+                "too_short",
+                "title_rehash",
+                "bad_opening",
+                "not_single_sentence",
+                "awkward",
+                "malformed_term",
+                "repetition",
+                "copies_q5_failure",
+                "copies_q8_metric",
+                "hidden_benchmark_or_superlative",
+                "none"
+              ]
+            },
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "grounding_ok": {
+            "type": "boolean"
+          },
+          "number_policy_ok": {
+            "type": "boolean"
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "grounding_ok",
+          "number_policy_ok",
+          "evidence_span",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You verify repair labels for a tiny mobile research-feed model. Return one JSON object only.\n\nBe high-scrutiny. The candidate must fix a manually confirmed q5 failure while remaining faithful to the title and abstract. Q8 is a useful reference, not ground truth; reject candidates that copy unsafe q8 metrics or inherit q5's semantic fog.\n\nAccept only if ALL are true:\n- Candidate is faithful to the title and abstract.\n- Candidate preserves the real object, method, result, caveat, task, or qualitative role.\n- Candidate fixes the manual failure type and does not keep q5's bad wording.\n- Candidate does not invent entities, mechanisms, materials, instruments, datasets, populations, causal links, or application domains.\n- Candidate does not replace the source claim with vague technical glue.\n- Candidate is exactly one natural sentence and 10 to 15 whitespace-separated words.\n- Candidate contains no digits, superscript digits, percentages, metric values, ranges, equations, HTML, formula notation, or digit-letter shorthand. Ordinary source-grounded descriptors like one-dimensional or double-sided are allowed.\n- Candidate does not copy Q8's fragile exact metric or the q5 failure.\n- Candidate is concrete enough for a mobile feed and not merely a title rehash.\n- Candidate is grammatical, non-repetitive, and free of malformed technical terms.\n\nReject for any concrete failure: digit residue, unsafe copied metric, wrong object, wrong method, wrong mechanism, wrong value binding, polarity flip, unsupported claim, invented technical glue, too generic, lost key result, title rehash, awkward phrasing, malformed wording, or not source grounded.\n\nFor accepted rows, use issue_tags=[\"none\"], grounding_ok=true, number_policy_ok=true, and quote a short supporting phrase from the abstract. For rejected rows, issue_tags must not include \"none\" and reason_span must name the actual failure.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nQ8 MLX-PYTHON SUMMARY, REFERENCE ONLY:\n{q8_summary}\n\nQ5 PROMOTED SUMMARY TO REPAIR:\n{bad_summary}\n\nMANUAL FAILURE TYPE:\n{failure_family}\n\nMANUAL SEVERITY:\n{review_severity}\n\nMANUAL NOTE:\n{reviewer_note}\n\nHEURISTIC SOURCE BUCKET:\n{source_bucket}\n\nWRITER DECISION:\n{writer_decision}\n\nWRITER ISSUE TAGS:\n{writer_issue_tags}\n\nWRITER GROUNDING POLICY:\n{grounding_policy}\n\nWRITER EVIDENCE SPAN:\n{writer_evidence_span}\n\nCANDIDATE REPAIR SUMMARY:\n{repair_summary}\n\nWRITER REASON:\n{writer_reason_span}"
+}

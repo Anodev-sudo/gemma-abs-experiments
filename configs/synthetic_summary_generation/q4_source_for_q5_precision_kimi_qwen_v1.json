@@ -1,0 +1,177 @@
+{
+  "input": {
+    "candidate_id_field": "candidate_id",
+    "candidate_prefix": "q4_source_for_q5_precision",
+    "count_fields": [
+      "source_release",
+      "quality_tier",
+      "recommended_action",
+      "q4_hardening_selection_bucket"
+    ],
+    "path": "hf_bucket/experiments/mlx_lora/q5_new_source_mining_v1/high_tier_q4_source_candidates.jsonl",
+    "tag_fields": [
+      "source_issue_tags",
+      "q4_issue_tags"
+    ]
+  },
+  "local_gates": {
+    "forbidden_prefixes": [
+      "this paper",
+      "we ",
+      "the authors",
+      "in this work",
+      "in this paper"
+    ],
+    "max_title_overlap": 0.75,
+    "max_words": 15,
+    "min_words": 10,
+    "reject_formula_shorthand": true,
+    "reject_unsupported_summary_numbers": true,
+    "require_final_period": false,
+    "require_single_sentence": true
+  },
+  "materialize": {
+    "provenance_fields": [
+      "source_release",
+      "source_release_path",
+      "source_priority",
+      "quality_tier",
+      "recommended_action",
+      "q4_hardening_review_id",
+      "q4_hardening_selection_bucket",
+      "q4_hardening_axes",
+      "q4_issue_tags",
+      "source_issue_tags",
+      "bad_runtime_summary",
+      "accepted_source_summary",
+      "q4_summary",
+      "q4_severity_sources",
+      "writer_decision",
+      "writer_issue_tags",
+      "writer_evidence_span",
+      "writer_reason_span",
+      "reviewer_decision",
+      "reviewer_issue_tags",
+      "reviewer_evidence_span",
+      "reviewer_reason_span"
+    ],
+    "source_split": "q4_source_for_q5_precision_kimi_qwen_v1"
+  },
+  "output": {
+    "release_dir": "hf_dataset/releases/recent_3y_balanced_10746_q4_source_for_q5_precision_kimi_qwen_v1",
+    "run_root": "hf_bucket/experiments/mlx_lora/q4_source_for_q5_precision_kimi_qwen_v1"
+  },
+  "reviewer": {
+    "accepted_decisions": [
+      "accept"
+    ],
+    "allowed_issue_tags": [
+      "invented_number",
+      "wrong_number_binding",
+      "numeric_error",
+      "unsupported_number",
+      "unsupported_entity",
+      "unsupported_entity_label",
+      "unsupported_mechanism",
+      "unsupported_causal_claim",
+      "causal_drift",
+      "overstrong_claim",
+      "polarity_flip",
+      "polarity_risk",
+      "misses_point",
+      "malformed_repetition",
+      "non_answer",
+      "title_rehash",
+      "too_generic",
+      "copies_bad_runtime_summary",
+      "style_drift",
+      "local_filter",
+      "none"
+    ],
+    "max_output_tokens": 192,
+    "max_retries": 4,
+    "prompt_path": "prompts/synthetic_summary/qwen3_5_122b_q4_source_for_q5_precision_verifier_v1.json",
+    "reasoning_effort": "none",
+    "response_format_mode": "schema",
+    "retry_backoff_seconds": 2.0,
+    "routes": [
+      {
+        "model": "qwen/qwen3.5-122b-a10b",
+        "reasoning_effort": "none",
+        "response_format_mode": "schema",
+        "route_id": "qwen_3_5_122b_structured"
+      },
+      {
+        "model": "qwen/qwen3.5-122b-a10b",
+        "reasoning_effort": "none",
+        "response_format_mode": "plain_json",
+        "route_id": "qwen_3_5_122b_plain_json"
+      },
+      {
+        "model": "qwen/qwen3-235b-a22b-2507",
+        "reasoning_effort": "none",
+        "response_format_mode": "schema",
+        "route_id": "qwen3_235b_structured"
+      },
+      {
+        "model": "qwen/qwen3-235b-a22b-2507",
+        "reasoning_effort": "none",
+        "response_format_mode": "plain_json",
+        "route_id": "qwen3_235b_plain_json"
+      }
+    ],
+    "temperature": 0.0,
+    "workers": 2
+  },
+  "writer": {
+    "accepted_decisions": [
+      "rewrite"
+    ],
+    "allowed_issue_tags": [
+      "invented_number",
+      "wrong_number_binding",
+      "numeric_error",
+      "unsupported_number",
+      "unsupported_entity",
+      "unsupported_entity_label",
+      "unsupported_mechanism",
+      "unsupported_causal_claim",
+      "causal_drift",
+      "overstrong_claim",
+      "polarity_flip",
+      "polarity_risk",
+      "misses_point",
+      "malformed_repetition",
+      "non_answer",
+      "title_rehash",
+      "too_generic",
+      "copies_bad_runtime_summary",
+      "style_drift",
+      "local_filter",
+      "none"
+    ],
+    "max_output_tokens": 192,
+    "max_retries": 4,
+    "prompt_path": "prompts/synthetic_summary/kimi_k2_6_q4_source_for_q5_precision_rewriter_v1.json",
+    "reasoning_effort": "none",
+    "response_format_mode": "schema",
+    "retry_backoff_seconds": 2.0,
+    "routes": [
+      {
+        "model": "moonshotai/kimi-k2.6",
+        "reasoning_effort": "none",
+        "response_format_mode": "schema",
+        "route_id": "kimi_k2_6_structured"
+      },
+      {
+        "model": "moonshotai/kimi-k2.6",
+        "reasoning_effort": "none",
+        "response_format_mode": "plain_json",
+        "route_id": "kimi_k2_6_plain_json"
+      }
+    ],
+    "temperature": 0.0,
+    "workers": 4,
+    "writer_label": "kimi"
+  }
+}

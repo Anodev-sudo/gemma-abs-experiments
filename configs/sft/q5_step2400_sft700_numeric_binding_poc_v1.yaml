@@ -1,0 +1,29 @@
+model: "google/gemma-3-270m-it"
+model_path: null
+hf_home: "hf_bucket/experiments/mlx_lora/.hf-home"
+model_dtype: "float32"
+
+converted_adapter_dir: "hf_bucket/experiments/sft/q5_step2400_sft_correction_v1/checkpoint-700"
+dataset_path: "hf_bucket/experiments/sft/q5_step2400_sft700_numeric_binding_poc_v1/dataset/train.jsonl"
+output_dir: "hf_bucket/experiments/sft/q5_step2400_sft700_numeric_binding_poc_v1"
+
+seed: 20260513
+
+# Diagnostic overfit run: prove whether sticky numeric-binding failures can move at all.
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+num_train_epochs: 10
+learning_rate: 2.0e-6
+warmup_ratio: 0.05
+max_seq_length: 1088
+assistant_only_loss: true
+gradient_checkpointing: false
+
+logging_steps: 1
+save_strategy: "steps"
+save_steps: 10
+save_total_limit: 20
+max_grad_norm: 1.0
+dataloader_num_workers: 0
+report_to: []
+copy_config_into_output: true

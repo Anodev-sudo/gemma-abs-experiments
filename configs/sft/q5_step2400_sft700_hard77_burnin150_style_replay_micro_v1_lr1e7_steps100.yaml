@@ -1,0 +1,30 @@
+model: "google/gemma-3-270m-it"
+model_path: null
+hf_home: "hf_bucket/experiments/mlx_lora/.hf-home"
+model_dtype: "float32"
+
+# Micro-LR style replay from hard77 burn-in checkpoint-150.
+converted_adapter_dir: "hf_bucket/experiments/sft/q5_step2400_sft700_hard77_burnin_v1_lr5e5/checkpoint-150"
+dataset_path: "hf_bucket/experiments/sft/q5_step2400_sft700_hard77_burnin150_style_replay_micro_v1_lr1e7_steps100/dataset_1200oldstyle_200ideal_77hard_v1/train.jsonl"
+output_dir: "hf_bucket/experiments/sft/q5_step2400_sft700_hard77_burnin150_style_replay_micro_v1_lr1e7_steps100"
+
+seed: 20260515
+
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+num_train_epochs: 1
+max_steps: 100
+learning_rate: 1.0e-7
+warmup_ratio: 0.05
+max_seq_length: 1088
+weighted_loss_normalization: "label_count"
+gradient_checkpointing: false
+
+logging_steps: 5
+save_strategy: "steps"
+save_steps: 5
+save_total_limit: 25
+max_grad_norm: 1.0
+dataloader_num_workers: 0
+report_to: []
+copy_config_into_output: true

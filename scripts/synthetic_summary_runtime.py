@@ -37,7 +37,7 @@ DOTTED_ABBREVIATION_RE = re.compile(
     r"""
     (?:
         \b(?:[A-Za-z]\.){2,} |
-        \b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|vs|etc)\. |
+        \b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|vs|etc|fig|eq|cf|approx|resp|ref|sec|no|al|chap|appx)\. |
         \b(?:e\.g|i\.e|et\ al)\.
     )
     """,

@@ -1,0 +1,73 @@
+{
+  "prompt_version": "qwen3_235b_a22b_2507_broad_reweighted_under14_repair_verifier_v1",
+  "role": "broad_reweighted_under14_repair_verifier",
+  "teacher_input": "title_abstract_existing_summary_candidate_repair",
+  "student_target": "verification_only",
+  "response_schema": {
+    "decision": "accept|reject",
+    "issue_tags": "string[]",
+    "grounding_ok": "boolean",
+    "style_ok": "boolean",
+    "evidence_span": "string",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "qwen3_235b_a22b_2507_broad_reweighted_under14_repair_verifier_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["accept", "reject"]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "too_long",
+                "too_short",
+                "title_rehash",
+                "not_single_sentence",
+                "bad_opening",
+                "formula_or_symbol",
+                "unsupported_claim",
+                "wrong_object",
+                "wrong_mechanism",
+                "wrong_polarity",
+                "lost_key_takeaway",
+                "too_vague",
+                "too_dense",
+                "awkward",
+                "repetition",
+                "copies_existing_summary",
+                "none"
+              ]
+            },
+            "maxItems": 5,
+            "uniqueItems": true
+          },
+          "grounding_ok": {
+            "type": "boolean"
+          },
+          "style_ok": {
+            "type": "boolean"
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": ["decision", "issue_tags", "grounding_ok", "style_ok", "evidence_span", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You verify repaired paper-summary labels for a tiny mobile research-feed model. Return one JSON object only.\n\nReject when uncertain. The candidate must be faithful, simple, readable, exactly one sentence, and under 14 words.\n\nAccept only if ALL are true:\n- Candidate is supported by the title and abstract.\n- Candidate captures a real object, result, method, task, caveat, or reason to open the paper.\n- Candidate is 8 to 13 whitespace-separated words.\n- Candidate is exactly one grammatical sentence ending in one period.\n- Candidate avoids title rehash and adds value beyond the title.\n- Candidate does not start with boilerplate such as This paper, The authors, or We propose.\n- Candidate does not invent mechanisms, entities, datasets, applications, causality, certainty, or benchmarks.\n- Candidate is plain enough for a small model to imitate.\n- Candidate is not awkward, fragmentary, repetitive, or notation-heavy.\n\nFor accepted rows, use issue_tags=[\"none\"], grounding_ok=true, style_ok=true, and quote a short supporting phrase from the abstract. For rejected rows, issue_tags must not include \"none\" and reason_span must name the actual failure.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCURRENT SUMMARY:\n{current_summary}\n\nORIGINAL ISSUE FLAGS:\n{issue_flags}\n\nWRITER DECISION:\n{writer_decision}\n\nWRITER ISSUE TAGS:\n{writer_issue_tags}\n\nWRITER EVIDENCE SPAN:\n{writer_evidence_span}\n\nCANDIDATE REPAIR SUMMARY:\n{repair_summary}\n\nWRITER REASON:\n{writer_reason_span}"
+}

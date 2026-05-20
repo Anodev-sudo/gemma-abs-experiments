@@ -1,0 +1,42 @@
+{
+  "prompt_version": "kimi_k2_6_q5_numeric_ideal200_writer_v6_no_lists",
+  "role": "q5_numeric_ideal200_policy_writer_no_lists",
+  "teacher_input": "title_abstract_checkpoint700_numeric_failure_context",
+  "student_target": "source_grounded_no_number_no_list_summary",
+  "response_schema": {
+    "decision": "rewrite",
+    "confidence_level": "high|medium|low",
+    "abstraction_level": "mechanism_result|role_safe_takeaway|task_or_resource|cautious_finding",
+    "issue_tags": "string[]",
+    "number_policy": "no_exact_numbers",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_numeric_ideal200_writer_v6_no_lists",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {"type": "string", "enum": ["rewrite"]},
+          "confidence_level": {"type": "string", "enum": ["high", "medium", "low"]},
+          "abstraction_level": {"type": "string", "enum": ["mechanism_result", "role_safe_takeaway", "task_or_resource", "cautious_finding"]},
+          "issue_tags": {"type": "array", "items": {"type": "string", "enum": ["numeric_risk", "metric_role_risk", "polarity_risk", "candidate_or_uncertain_result", "negative_or_null_result", "formula_risk", "dense_metric_soup", "safe_abstraction", "source_grounded_terms", "none"]}},
+          "number_policy": {"type": "string", "enum": ["no_exact_numbers"]},
+          "evidence_span": {"type": "string"},
+          "summary": {"type": "string"},
+          "word_count": {"type": "integer", "minimum": 10, "maximum": 13},
+          "reason_span": {"type": "string"}
+        },
+        "required": ["decision", "confidence_level", "abstraction_level", "issue_tags", "number_policy", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You write compact supervised-finetuning labels for a small mobile research feed model. Return one JSON object only. Always return decision=\"rewrite\" and number_policy=\"no_exact_numbers\".\n\nThe student model corrupts exact numbers, metric roles, polarity, and specificity. Teach safe qualitative abstraction.\n\nHard rules\n- Use only title and abstract as evidence. Risky model summaries are warnings only.\n- Summary must be one sentence, 10 to 13 words. Aim for 11 or 12.\n- End with exactly one period. No semicolon.\n- No digits, exact quantities, percentages, ranges, units, formulas, HTML, Greek symbols, inequality signs, equations, complexity notation, theorem notation, or underscored notation.\n- Do not spell exact quantities as words.\n- ABSOLUTE BAN in summary: most, often, widespread, best, highest, largest, substantial, dramatic, major, state-of-the-art, outperforms, superior, strong, highly, significant.\n- Never start with: This paper, The paper, The authors, The work, We propose, In this work, In this paper.\n\nNo-list compactness rules\n- Choose one supported object, mechanism, constraint, or use. Do not include a list.\n- Avoid comma lists and \"or\" alternatives. Do not mention multiple prompt types, multiple constraints, or multiple outcomes.\n- If several details are supported, pick the safest one and omit the rest.\n- Avoid unexplained temporal fragments such as after, before, later, earlier unless the abstract's main result is temporal.\n\nSafe abstraction ladder\n- High confidence: source object + action + safe outcome.\n- Fragile metric roles: keep roles qualitative and separate. Never swap throughput, cost, accuracy, latency, parameters, or dataset size.\n- Dense metric soup: summarize the resource, task, constraint, or qualitative direction.\n- Candidate, limit, caveat, or negative: preserve uncertainty using candidate, suggests, constrains, rules out, limitation, or remains.\n- Math or formula-heavy source: do not copy notation; describe the classification, bound, construction, or theorem object qualitatively.\n- If a row seems too hard, choose a lower-confidence task/resource label rather than overclaiming.\n\nGood compact shapes\n- \"Layer scheduling balances throughput and cost across heterogeneous training resources.\"\n- \"Coronagraphic imaging identifies a candidate companion while constraining predicted planets.\"\n- \"Pseudocode extraction supports algorithm understanding and automated code generation.\"\n- \"Logical classification frames the Riemann hypothesis alongside related conjectures.\"\n\nKeep evidence_span under 8 words and reason_span under 12 words. Count summary words exactly. If over 13, remove adjectives, mechanisms, or the second object. If under 10, add one source-grounded domain noun.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCHECKPOINT-700 RISKY SUMMARY, WARNING ONLY:\n{bad_summary}\n\nOPTIONAL PRIOR BAD SUMMARY, WARNING ONLY:\n{pre_dpo_summary}\n\nFAILURE TAGS:\n{failure_tags}\n\nAUDIT / SELECTION GUIDANCE:\n{short_reason}\n\nWrite the ideal no-number label now."
+}

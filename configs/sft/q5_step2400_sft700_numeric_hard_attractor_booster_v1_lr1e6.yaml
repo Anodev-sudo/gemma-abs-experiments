@@ -1,0 +1,32 @@
+model: "google/gemma-3-270m-it"
+model_path: null
+hf_home: "hf_bucket/experiments/mlx_lora/.hf-home"
+model_dtype: "float32"
+
+# Hard-attractor booster: 600 normal anchors + 200 regenerated ideal numeric rows
+# + 77 Kimi/Qwen hard-attractor rows from current checkpoint-200 survivors.
+# Numeric/booster weights: polarity/caveat 8x, role-safe direction 6x,
+# metric-role nouns 5x, source anchors 2x capped at three per row.
+converted_adapter_dir: "hf_bucket/experiments/sft/q5_step2400_sft_correction_v1/checkpoint-700"
+dataset_path: "hf_bucket/experiments/sft/q5_step2400_sft700_numeric_hard_attractor_booster_v1_lr1e6/dataset_600normal_200ideal_77booster_v1/train.jsonl"
+output_dir: "hf_bucket/experiments/sft/q5_step2400_sft700_numeric_hard_attractor_booster_v1_lr1e6"
+
+seed: 20260524
+
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+num_train_epochs: 1
+learning_rate: 1.0e-6
+warmup_ratio: 0.05
+max_seq_length: 1088
+weighted_loss_normalization: "label_count"
+gradient_checkpointing: false
+
+logging_steps: 10
+save_strategy: "steps"
+save_steps: 25
+save_total_limit: 10
+max_grad_norm: 1.0
+dataloader_num_workers: 0
+report_to: []
+copy_config_into_output: true

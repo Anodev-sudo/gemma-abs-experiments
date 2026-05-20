@@ -15,6 +15,7 @@ import sys
 import time
 from typing import Any
 import urllib.request
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -237,55 +238,135 @@ def command_generate_llama(args: argparse.Namespace) -> None:
     rows = load_jsonl(Path(args.input_jsonl))
     prompt_spec = load_prompt_spec(Path(args.prompt_spec))
     output_path = Path(args.output_jsonl)
+    workers = getattr(args, "workers", 1)
+
+    if workers > 1:
+        _generate_llama_parallel(rows, prompt_spec, output_path, args, workers)
+    else:
+        _generate_llama_sequential(rows, prompt_spec, output_path, args)
+
+
+def _make_llama_payload(row: dict[str, Any], prompt_spec: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+    system_prompt, user_prompt = build_prompt(row, prompt_spec, args.input_mode)
+    return {
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "max_tokens": args.max_tokens,
+        "temperature": args.temp,
+        "top_p": args.top_p,
+        "top_k": args.top_k,
+        "stream": False,
+    }
+
+
+def _llama_output(row: dict[str, Any], payload: dict[str, Any], api_url: str, timeout: float, label: str) -> dict[str, Any]:
+    start = time.perf_counter()
+    try:
+        response = llama_request(api_url, payload, timeout)
+        raw_output = response["choices"][0]["message"]["content"]
+        normalized_output = normalize_whitespace(raw_output)
+        timing_ms = round((time.perf_counter() - start) * 1000, 3)
+        return {
+            "paper_id": str(row["paper_id"]),
+            "eval_id": row.get("eval_id"),
+            "label": label,
+            "runtime": "llama_cpp_server",
+            "ok": bool(normalized_output),
+            "raw_output": raw_output,
+            "normalized_output": normalized_output,
+            "wall_time_ms": timing_ms,
+            "timings": response.get("timings", {}),
+            "usage": response.get("usage", {}),
+            "format_flags": runtime_format_flags(normalized_output),
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "paper_id": str(row["paper_id"]),
+            "eval_id": row.get("eval_id"),
+            "label": label,
+            "runtime": "llama_cpp_server",
+            "ok": False,
+            "raw_output": "",
+            "normalized_output": "",
+            "error": str(exc),
+            "format_flags": ["empty_output"],
+        }
+
+
+def _generate_llama_sequential(
+    rows: list[dict[str, Any]],
+    prompt_spec: dict[str, Any],
+    output_path: Path,
+    args: argparse.Namespace,
+) -> None:
     with open_output(output_path, overwrite=args.overwrite) as handle:
         for index, row in enumerate(rows, start=1):
-            system_prompt, user_prompt = build_prompt(row, prompt_spec, args.input_mode)
-            payload = {
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                "max_tokens": args.max_tokens,
-                "temperature": args.temp,
-                "top_p": args.top_p,
-                "top_k": args.top_k,
-                "stream": False,
-            }
-            start = time.perf_counter()
-            try:
-                response = llama_request(args.api_url, payload, args.timeout)
-                raw_output = response["choices"][0]["message"]["content"]
-                normalized_output = normalize_whitespace(raw_output)
-                timing_ms = round((time.perf_counter() - start) * 1000, 3)
-                output = {
-                    "paper_id": str(row["paper_id"]),
-                    "eval_id": row.get("eval_id"),
-                    "label": args.label,
-                    "runtime": "llama_cpp_server",
-                    "ok": bool(normalized_output),
-                    "raw_output": raw_output,
-                    "normalized_output": normalized_output,
-                    "wall_time_ms": timing_ms,
-                    "timings": response.get("timings", {}),
-                    "usage": response.get("usage", {}),
-                    "format_flags": runtime_format_flags(normalized_output),
-                }
-            except Exception as exc:  # noqa: BLE001
-                output = {
-                    "paper_id": str(row["paper_id"]),
-                    "eval_id": row.get("eval_id"),
-                    "label": args.label,
-                    "runtime": "llama_cpp_server",
-                    "ok": False,
-                    "raw_output": "",
-                    "normalized_output": "",
-                    "error": str(exc),
-                    "format_flags": ["empty_output"],
-                }
+            payload = _make_llama_payload(row, prompt_spec, args)
+            output = _llama_output(row, payload, args.api_url, args.timeout, args.label)
             handle.write(json.dumps(output, ensure_ascii=True, sort_keys=True) + "\n")
             handle.flush()
             if index % 10 == 0:
                 print(f"[runtime-shift:llama] generated {index}/{len(rows)} rows...")
+    print(f"[runtime-shift:llama] wrote {len(rows)} rows to {output_path}")
+
+
+def _generate_llama_parallel(
+    rows: list[dict[str, Any]],
+    prompt_spec: dict[str, Any],
+    output_path: Path,
+    args: argparse.Namespace,
+    workers: int,
+) -> None:
+    """Generate outputs in parallel and write them in index order as they become
+    contiguous, so progress is visible and partial results survive crashes."""
+    results: dict[int, dict[str, Any]] = {}
+    next_write = 1  # next index we expect to write
+
+    def _submit(row_and_index: tuple[int, dict[str, Any]]) -> dict[str, Any]:
+        index, row = row_and_index
+        payload = _make_llama_payload(row, prompt_spec, args)
+        return _llama_output(row, payload, args.api_url, args.timeout, args.label)
+
+    items = list(enumerate(rows, start=1))
+    completed = 0
+
+    with open_output(output_path, overwrite=args.overwrite) as handle:
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            pending: dict[Future[dict[str, Any]], int] = {}
+            next_idx = 0
+
+            while next_idx < len(items) and len(pending) < workers:
+                pending[executor.submit(_submit, items[next_idx])] = items[next_idx][0]
+                next_idx += 1
+
+            while pending:
+                done, _ = wait(pending, return_when=FIRST_COMPLETED)
+                for future in done:
+                    index = pending.pop(future)
+                    output = future.result()
+                    results[index] = output
+                    completed += 1
+
+                    # Write any contiguous block that is now ready
+                    while next_write in results:
+                        handle.write(json.dumps(results[next_write], ensure_ascii=True, sort_keys=True) + "\n")
+                        del results[next_write]  # free memory
+                        next_write += 1
+                    handle.flush()
+
+                    if completed % 50 == 0:
+                        print(f"[runtime-shift:llama] generated {completed}/{len(rows)} rows...", flush=True)
+
+                while next_idx < len(items) and len(pending) < workers:
+                    pending[executor.submit(_submit, items[next_idx])] = items[next_idx][0]
+                    next_idx += 1
+
+        # Flush any remaining out-of-order stragglers
+        for index in sorted(results):
+            handle.write(json.dumps(results[index], ensure_ascii=True, sort_keys=True) + "\n")
+
     print(f"[runtime-shift:llama] wrote {len(rows)} rows to {output_path}")
 
 
@@ -688,6 +769,7 @@ def build_parser() -> argparse.ArgumentParser:
     llama.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)
     llama.add_argument("--timeout", type=float, default=60.0)
     llama.add_argument("--overwrite", action="store_true")
+    llama.add_argument("--workers", type=int, default=1, help="Number of parallel generation workers.")
     llama.set_defaults(func=command_generate_llama)
 
     pairs = subparsers.add_parser("build-pairs", help="Build the three pairwise runtime bundles.")

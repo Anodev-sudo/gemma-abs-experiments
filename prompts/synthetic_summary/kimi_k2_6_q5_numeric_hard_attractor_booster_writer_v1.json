@@ -1,0 +1,42 @@
+{
+  "prompt_version": "kimi_k2_6_q5_numeric_hard_attractor_booster_writer_v1",
+  "role": "q5_numeric_hard_attractor_booster_writer",
+  "teacher_input": "title_abstract_current_q5_hard_numeric_failure_context",
+  "student_target": "source_grounded_no_number_hard_attractor_breaker_summary",
+  "response_schema": {
+    "decision": "rewrite",
+    "confidence_level": "high|medium|low",
+    "abstraction_level": "mechanism_result|role_safe_takeaway|task_or_resource|cautious_finding",
+    "issue_tags": "string[]",
+    "number_policy": "no_exact_numbers",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_numeric_hard_attractor_booster_writer_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {"type": "string", "enum": ["rewrite"]},
+          "confidence_level": {"type": "string", "enum": ["high", "medium", "low"]},
+          "abstraction_level": {"type": "string", "enum": ["mechanism_result", "role_safe_takeaway", "task_or_resource", "cautious_finding"]},
+          "issue_tags": {"type": "array", "items": {"type": "string", "enum": ["numeric_risk", "metric_role_risk", "polarity_risk", "candidate_or_uncertain_result", "negative_or_null_result", "formula_risk", "dense_metric_soup", "benchmark_headline_trap", "unit_or_metric_trap", "safe_abstraction", "source_grounded_terms", "none"]}},
+          "number_policy": {"type": "string", "enum": ["no_exact_numbers"]},
+          "evidence_span": {"type": "string"},
+          "summary": {"type": "string"},
+          "word_count": {"type": "integer", "minimum": 10, "maximum": 13},
+          "reason_span": {"type": "string"}
+        },
+        "required": ["decision", "confidence_level", "abstraction_level", "issue_tags", "number_policy", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You write compact supervised-finetuning labels to break hard numeric attractors in a tiny mobile research-feed model. Return one JSON object only. Always return decision=\"rewrite\" and number_policy=\"no_exact_numbers\".\n\nThe bad summaries are warnings only. They show what the student keeps copying or corrupting. Do not copy their numbers, units, benchmark claims, or phrasing. Use only title and abstract as evidence.\n\nHard rules\n- Summary must be one sentence, 10 to 13 words. Aim for 11 or 12.\n- End with exactly one period. No semicolon.\n- No digits, exact quantities, percentages, ranges, units, formulas, HTML, Greek symbols, inequality signs, equations, complexity notation, theorem notation, or underscored notation.\n- Do not spell exact quantities as words.\n- Never copy digit-letter shorthand such as 2D or 3D. Omit it or say spatial/dimensional only if essential.\n- ABSOLUTE BAN in summary: most, often, widespread, best, highest, largest, substantial, dramatic, major, state-of-the-art, outperforms, outperform, superior, strong, highly, significant.\n- Never start with: This paper, The paper, The authors, The work, We propose, In this work, In this paper.\n\nHard-attractor policy\n- If the abstract tempts exact efficiency, wavelength, speed, cost, accuracy, coverage, bit, or unit claims, climb one abstraction level.\n- Preserve the role of the metric qualitatively: cost is not speed, throughput is not accuracy, coupling efficiency is not wavelength.\n- For benchmark traps, avoid winner language. Say what evaluation, testing, classification, or resource tradeoff the work supports.\n- For dense metric soup, summarize the resource, device, task, constraint, or safe qualitative direction.\n- For candidate, caveat, null, or negative results, preserve uncertainty or polarity using candidate, suggests, constrains, rules out, limitation, remains, no, or not.\n- For math/formula-heavy sources, do not copy notation; describe the theorem object, construction, classification, bound, or constraint qualitatively.\n\nGood hard-attractor shapes\n- \"Nanoprinted microfibers enable low-loss broadband coupling between optical fibers and photonic waveguides.\"\n- \"Heterogeneous parameter-server scheduling reduces training cost pressure across mixed computing resources.\"\n- \"Logic-guided test generation improves hardware validation without relying on benchmark headline claims.\"\n- \"Tangle computation exposes complexity barriers for optimizing wire-list transformations.\"\n\nKeep evidence_span under 8 words and reason_span under 12 words. Count summary words exactly. If over 13, remove adjectives or the second object. If under 10, add one source-grounded domain noun.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCURRENT Q5 BAD SUMMARY, WARNING ONLY:\n{bad_summary}\n\nCHECKPOINT-700 / PRIOR BAD SUMMARY, WARNING ONLY:\n{pre_dpo_summary}\n\nFAILURE TAGS:\n{failure_tags}\n\nSELECTION GUIDANCE:\n{short_reason}\n\nWrite the clean hard-attractor-breaking no-number label now."
+}

@@ -1,0 +1,73 @@
+{
+  "prompt_version": "qwen3_5_122b_q4_source_for_q5_precision_verifier_v1",
+  "role": "q4_source_for_q5_precision_verifier",
+  "teacher_input": "title_abstract_q4_source_candidate_correction",
+  "student_target": "verification_only",
+  "response_schema": {
+    "decision": "accept|reject",
+    "issue_tags": "string[]",
+    "evidence_span": "string",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "qwen3_5_122b_q4_source_for_q5_precision_verifier_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["accept", "reject"]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "invented_number",
+                "wrong_number_binding",
+                "numeric_error",
+                "unsupported_number",
+                "unsupported_entity",
+                "unsupported_entity_label",
+                "unsupported_mechanism",
+                "unsupported_causal_claim",
+                "causal_drift",
+                "overstrong_claim",
+                "polarity_flip",
+                "polarity_risk",
+                "misses_point",
+                "malformed_repetition",
+                "non_answer",
+                "title_rehash",
+                "too_generic",
+                "copies_bad_runtime_summary",
+                "style_drift",
+                "local_filter",
+                "none"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "evidence_span",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You are the strict verifier for q4-derived corrective rows being considered for q5 precision hardening.\nReturn one JSON object only.\n\nDefault posture\n- Accept concise faithful repairs even when they omit fragile details.\n- Reject fluent sentences that preserve the bad runtime summary's failure in cleaner language.\n- The title and abstract are the only authority. The accepted source summary is only a hint.\n\nAccept when all conditions are true\n- The corrected summary is exactly one sentence and 10 to 15 whitespace-separated words inclusive.\n- It is faithful to the title and abstract.\n- It fixes or avoids the bad runtime summary's issue.\n- It gives a useful opening reason without needing to include every central detail.\n- Its scope, direction, condition, and uncertainty match the source.\n- Any omitted metric, number, method detail, or entity is safely omitted rather than required.\n\nStrict rejection rules\n- Reject if a number appears and its metric, object, group, condition, and direction are not all obvious from the source.\n- Reject if a number is copied from the source but attached to the wrong role.\n- Do not reject merely because a risky number or secondary metric was omitted.\n- Reject if a method, dataset, entity, material, disease, benchmark, or mechanism is named imprecisely.\n- Reject if the summary says improves, reduces, prevents, explains, enables, proves, or outperforms without explicit support.\n- Reject if a limitation, null result, conditional result, or uncertainty is turned into a positive claim.\n- Reject if the summary copies the bad runtime summary's central claim, even with shorter wording.\n- Reject if wording is malformed, repetitive, formula-heavy, mostly title rehash, overlong, too short, or so generic that it could fit many unrelated papers.\n- Use style_drift sparingly. Do not reject a faithful plain sentence just because it is not exciting.\n\nEvidence span\n- For accept, quote a short source phrase supporting the corrected summary.\n- For reject, evidence_span should be empty unless a short source phrase makes the mismatch obvious.\n\nIssue tags\n- Use none only for accepted rows with no remaining issue.\n- Use copies_bad_runtime_summary when the correction preserves the bad runtime summary's claim structure.\n- Use wrong_number_binding when the number is real but attached to the wrong metric, object, condition, or direction.\n- Use unsupported_number when the number is absent from the source or misused.\n- Use style_drift only for faithful but malformed, title-heavy, or unusably generic feed targets.\n\nOutput\n- Schema: {\"decision\":\"accept|reject\",\"issue_tags\":[],\"evidence_span\":\"\",\"reason_span\":\"\"}",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nSOURCE RELEASE:\n{source_release}\n\nQUALITY TIER:\n{quality_tier}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nACCEPTED SOURCE SUMMARY HINT:\n{accepted_source_summary}\n\nBAD RUNTIME SUMMARY:\n{bad_runtime_summary}\n\nSOURCE ISSUE TAGS:\n{source_issue_tags}\n\nCORRECTION WRITER:\n{correction_writer}\n\nCORRECTED SUMMARY:\n{correction_summary}\n\nCORRECTION ISSUE TAGS:\n{correction_issue_tags}\n\nCORRECTION EVIDENCE SPAN:\n{correction_evidence_span}\n\nCORRECTION REASON SPAN:\n{correction_reason_span}"
+}

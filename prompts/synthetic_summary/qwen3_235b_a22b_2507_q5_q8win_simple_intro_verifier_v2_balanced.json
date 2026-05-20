@@ -1,0 +1,60 @@
+{
+  "prompt_version": "qwen3_235b_a22b_2507_q5_q8win_simple_intro_verifier_v2_balanced",
+  "role": "q5_q8win_simple_intro_verifier_balanced",
+  "teacher_input": "title_abstract_q8_winning_summary_q5_losing_summary_correction",
+  "student_target": "verification_only",
+  "response_schema": {
+    "decision": "accept|reject",
+    "issue_tags": "string[]",
+    "evidence_span": "string",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "qwen3_235b_a22b_2507_q5_q8win_simple_intro_verifier_v2_balanced",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": { "type": "string", "enum": ["accept", "reject"] },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "invented_number",
+                "wrong_number_binding",
+                "numeric_error",
+                "unsupported_number",
+                "unsupported_entity",
+                "unsupported_entity_label",
+                "unsupported_mechanism",
+                "unsupported_causal_claim",
+                "overstrong_claim",
+                "polarity_flip",
+                "polarity_risk",
+                "misses_point",
+                "malformed_repetition",
+                "non_answer",
+                "title_rehash",
+                "too_generic",
+                "copies_q5_failure",
+                "style_drift",
+                "local_filter",
+                "none"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "evidence_span": { "type": "string" },
+          "reason_span": { "type": "string" }
+        },
+        "required": ["decision", "issue_tags", "evidence_span", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You are a strict verifier for q5 paper-feed training labels. Return one JSON object only.\n\nDefault posture\n- The title and abstract are the only authority.\n- The q8 summary won a blind comparison, but it is only a hint.\n- Accept only labels that are faithful, readable, and useful in a broad mobile paper feed.\n- The goal is an inviting one-sentence intro or takeaway, not a dense mini-abstract.\n\nAccept when all conditions are true\n- The corrected summary is exactly one sentence and 10 to 15 whitespace-separated words inclusive.\n- It gives a concrete, supported reason to open the paper.\n- It is materially better than the current q5 losing summary.\n- It preserves the central supported subject, object, method, finding, limitation, or scope.\n- It preserves polarity, direction, uncertainty, limitations, value relationships, and scope.\n- It may omit exact numbers when the remaining qualitative claim is still concrete and useful.\n- Any exact number used is central, readable, explicitly supported, and attached to the right object, metric, condition, and direction.\n\nReject when any condition is true\n- It treats the q8 hint as authority when the abstract does not support it.\n- It invents or misbinds a number, entity, method, dataset, material, disease, metric, mechanism, or claim.\n- It flips polarity, direction, limitation, uncertainty, or scope.\n- It makes unsupported improvement, reduction, causal, benchmark, or superiority claims.\n- It preserves the current q5 summary's unsupported entities, wrong value bindings, malformed repetition, or off-target structure.\n- It drops the central value so far that the sentence becomes generic or title-only.\n- It is too dense, overlong, too short, formula-like, fragmented, or awkward.\n\nEvidence span\n- For accept, quote a short source phrase supporting the corrected summary.\n- For reject, evidence_span should be empty unless a source phrase makes the mismatch obvious.\n\nIssue tags\n- Use none only for accepted rows with no remaining issue.\n- Use wrong_number_binding for numbers attached to the wrong metric, object, condition, or direction.\n- Use unsupported_number for absent or unsupported values.\n- Use unsupported_entity for wrong names, materials, datasets, organisms, instruments, or domains.\n- Use polarity_flip for wrong direction, sign, increase, decrease, presence, absence, success, or failure.\n- Use misses_point for vague corrections that omit the useful claim.\n- Use style_drift for dense, awkward, title-only, fragmented, or mini-abstract-like corrections.\n\nOutput schema: {\"decision\":\"accept|reject\",\"issue_tags\":[],\"evidence_span\":\"\",\"reason_span\":\"\"}",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nBLIND REVIEW SPLIT:\n{blind_review_split}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nQ8 WINNING SUMMARY HINT:\n{q8_summary}\n\nCURRENT Q5 LOSING SUMMARY:\n{q5_summary}\n\nQ5 ISSUE TAGS:\n{q5_issue_tags}\n\nBLIND REVIEW NOTE:\n{reviewer_note}\n\nCORRECTION WRITER:\n{correction_writer}\n\nCORRECTED SUMMARY:\n{correction_summary}\n\nCORRECTION ISSUE TAGS:\n{correction_issue_tags}\n\nCORRECTION EVIDENCE SPAN:\n{correction_evidence_span}\n\nCORRECTION REASON SPAN:\n{correction_reason_span}"
+}

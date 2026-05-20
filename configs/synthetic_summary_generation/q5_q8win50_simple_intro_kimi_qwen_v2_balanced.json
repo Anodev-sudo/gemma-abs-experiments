@@ -1,0 +1,167 @@
+{
+  "input": {
+    "path": "hf_bucket/experiments/sft/q5_step2400_broad_reweighted_basin_v1/lr6e7/cleanup_after_ckpt2500/lr4e7/q8win_after_ckpt30/lr3e7_x3/eval/q8win_simple_intro_after_ckpt50/source_candidates/q8win_repair_candidates.jsonl",
+    "candidate_id_field": "candidate_id",
+    "candidate_prefix": "q5_q8win50_simple_intro",
+    "count_fields": [
+      "blind_review_split",
+      "q5_severity_source"
+    ],
+    "tag_fields": [
+      "q5_issue_tags"
+    ]
+  },
+  "output": {
+    "run_root": "hf_bucket/experiments/sft/q5_step2400_broad_reweighted_basin_v1/lr6e7/cleanup_after_ckpt2500/lr4e7/q8win_after_ckpt30/lr3e7_x3/eval/q8win_simple_intro_after_ckpt50/kimi_qwen_simple_intro_v2_balanced",
+    "release_dir": "hf_dataset/releases/recent_3y_balanced_10746_q5_q8win50_simple_intro_v2_balanced"
+  },
+  "writer": {
+    "prompt_path": "prompts/synthetic_summary/kimi_k2_6_q5_q8win_simple_intro_rewriter_v2_balanced.json",
+    "writer_label": "kimi",
+    "workers": 3,
+    "temperature": 0.0,
+    "max_output_tokens": 220,
+    "reasoning_effort": "none",
+    "response_format_mode": "schema",
+    "max_retries": 4,
+    "retry_backoff_seconds": 2.0,
+    "accepted_decisions": [
+      "rewrite"
+    ],
+    "allowed_issue_tags": [
+      "invented_number",
+      "wrong_number_binding",
+      "numeric_error",
+      "unsupported_number",
+      "unsupported_entity",
+      "unsupported_entity_label",
+      "unsupported_mechanism",
+      "unsupported_causal_claim",
+      "overstrong_claim",
+      "polarity_flip",
+      "polarity_risk",
+      "misses_point",
+      "malformed_repetition",
+      "non_answer",
+      "title_rehash",
+      "too_generic",
+      "copies_q5_failure",
+      "style_drift",
+      "local_filter",
+      "none"
+    ],
+    "routes": [
+      {
+        "route_id": "kimi_k2_6_structured",
+        "model": "moonshotai/kimi-k2.6",
+        "reasoning_effort": "none",
+        "response_format_mode": "schema"
+      },
+      {
+        "route_id": "kimi_k2_6_plain_json",
+        "model": "moonshotai/kimi-k2.6",
+        "reasoning_effort": "none",
+        "response_format_mode": "plain_json"
+      }
+    ]
+  },
+  "reviewer": {
+    "prompt_path": "prompts/synthetic_summary/qwen3_235b_a22b_2507_q5_q8win_simple_intro_verifier_v2_balanced.json",
+    "workers": 2,
+    "temperature": 0.0,
+    "max_output_tokens": 220,
+    "reasoning_effort": "none",
+    "response_format_mode": "schema",
+    "max_retries": 4,
+    "retry_backoff_seconds": 2.0,
+    "accepted_decisions": [
+      "accept"
+    ],
+    "allowed_issue_tags": [
+      "invented_number",
+      "wrong_number_binding",
+      "numeric_error",
+      "unsupported_number",
+      "unsupported_entity",
+      "unsupported_entity_label",
+      "unsupported_mechanism",
+      "unsupported_causal_claim",
+      "overstrong_claim",
+      "polarity_flip",
+      "polarity_risk",
+      "misses_point",
+      "malformed_repetition",
+      "non_answer",
+      "title_rehash",
+      "too_generic",
+      "copies_q5_failure",
+      "style_drift",
+      "local_filter",
+      "none"
+    ],
+    "routes": [
+      {
+        "route_id": "qwen_3_5_122b_structured",
+        "model": "qwen/qwen3.5-122b-a10b",
+        "reasoning_effort": "none",
+        "response_format_mode": "schema"
+      },
+      {
+        "route_id": "qwen_3_5_122b_plain_json",
+        "model": "qwen/qwen3.5-122b-a10b",
+        "reasoning_effort": "none",
+        "response_format_mode": "plain_json"
+      },
+      {
+        "route_id": "qwen3_235b_structured",
+        "model": "qwen/qwen3-235b-a22b-2507",
+        "reasoning_effort": "none",
+        "response_format_mode": "schema"
+      },
+      {
+        "route_id": "qwen3_235b_plain_json",
+        "model": "qwen/qwen3-235b-a22b-2507",
+        "reasoning_effort": "none",
+        "response_format_mode": "plain_json"
+      }
+    ]
+  },
+  "local_gates": {
+    "min_words": 10,
+    "max_words": 15,
+    "require_single_sentence": true,
+    "require_final_period": true,
+    "forbidden_prefixes": [
+      "this paper",
+      "we ",
+      "the authors",
+      "in this work",
+      "in this paper"
+    ],
+    "max_title_overlap": 0.8,
+    "reject_formula_shorthand": true,
+    "reject_unsupported_summary_numbers": true
+  },
+  "materialize": {
+    "source_split": "q5_q8win50_simple_intro_v2_balanced",
+    "provenance_fields": [
+      "blind_review_id",
+      "blind_review_split",
+      "q5_issue_tags",
+      "q5_severity_source",
+      "q5_summary",
+      "q8_summary",
+      "reviewer_note",
+      "preferred_model",
+      "more_accurate_model",
+      "writer_decision",
+      "writer_issue_tags",
+      "writer_evidence_span",
+      "writer_reason_span",
+      "reviewer_decision",
+      "reviewer_issue_tags",
+      "reviewer_evidence_span",
+      "reviewer_reason_span"
+    ]
+  }
+}

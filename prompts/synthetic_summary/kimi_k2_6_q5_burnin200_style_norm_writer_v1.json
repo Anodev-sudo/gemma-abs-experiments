@@ -1,0 +1,56 @@
+{
+  "prompt_version": "kimi_k2_6_q5_burnin200_style_norm_writer_v1",
+  "role": "q5_burnin200_style_normalization_writer",
+  "teacher_input": "title_abstract_checkpoint200_output_failure_category",
+  "student_target": "source_grounded_digit_free_feed_summary",
+  "response_schema": {
+    "decision": "rewrite",
+    "issue_tags": "string[]",
+    "number_policy": "no_digits",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_burnin200_style_norm_writer_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {"type": "string", "enum": ["rewrite"]},
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "generic_title_drift",
+                "value_attachment_or_polarity",
+                "awkward_malformed_technical",
+                "result_preserving_no_digit_numeric",
+                "source_grounded_specificity",
+                "polarity_preserved",
+                "role_preserved",
+                "natural_feed_style",
+                "none"
+              ]
+            },
+            "maxItems": 5,
+            "uniqueItems": true
+          },
+          "number_policy": {"type": "string", "enum": ["no_digits"]},
+          "evidence_span": {"type": "string"},
+          "summary": {"type": "string"},
+          "word_count": {"type": "integer", "minimum": 10, "maximum": 15},
+          "reason_span": {"type": "string"}
+        },
+        "required": ["decision", "issue_tags", "number_policy", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You write supervised-finetuning labels for a tiny mobile research-feed model after a hard numeric burn-in. Return one JSON object only. Always return decision=\"rewrite\" and number_policy=\"no_digits\".\n\nThe checkpoint output is a warning, not a target. It may be digit-free but too vague, awkward, wrong, over-abstract, or polarity-changing. Use only the title and abstract as evidence.\n\nHard rules for summary:\n- One natural sentence, 10 to 15 words.\n- End with exactly one period.\n- No digits anywhere. Do not use digit-letter shorthand, model-year shorthand, dataset-year shorthand, or exact quantities written as words.\n- No formulas, equations, units, ranges, Greek symbols, HTML, theorem notation, or complexity notation.\n- Do not start with: This paper, The paper, The authors, The work, We propose, In this work, In this paper.\n- Avoid: most, often, widespread, best, highest, largest, substantial, dramatic, major, state-of-the-art, outperforms, outperform, superior, strong, highly, significant.\n- Do not merely paraphrase the title.\n\nNormalization policy:\n- Keep the burn-in's no-digit discipline, but restore source-grounded specificity.\n- Preserve the real subject, object, mechanism, direction, polarity, and uncertainty.\n- If a number carried useful meaning, replace it with a qualitative role: resource tradeoff, measurement purpose, bound, scale, constraint, dataset role, or result direction.\n- If the checkpoint output is generic, name the concrete paper object and payoff.\n- If the checkpoint output is awkward, rewrite in plain feed language without coined phrases.\n- If the checkpoint output attaches the wrong value or object, correct the binding using the abstract.\n\nGood shapes:\n- \"Nanoprinted microfibers enable low-loss broadband coupling between optical fibers and photonic waveguides.\"\n- \"Bayesian CMB analysis propagates instrument uncertainty through cosmological parameter estimates.\"\n- \"Minkowski functionals sharpen neutrino-mass constraints from galaxy distribution geometry.\"\n- \"Weak-lensing catalogs provide public shear maps for cosmology survey analysis.\"\n\nKeep evidence_span under 8 words and reason_span under 12 words. Count summary words exactly.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCHECKPOINT-200 OUTPUT TO REPAIR:\n{bad_summary}\n\nCHECKPOINT-700 BASELINE, WARNING ONLY:\n{pre_dpo_summary}\n\nFAILURE CATEGORY AND TAGS:\n{failure_tags}\n\nSELECTION GUIDANCE:\n{short_reason}\n\nWrite the clean digit-free normalization label now."
+}

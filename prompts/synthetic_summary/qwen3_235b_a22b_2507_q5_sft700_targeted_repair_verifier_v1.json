@@ -1,0 +1,41 @@
+{
+  "prompt_version": "qwen3_235b_a22b_2507_q5_sft700_targeted_repair_verifier_v1",
+  "role": "q5_sft700_targeted_repair_verifier",
+  "teacher_input": "title_abstract_bad_summary_candidate_repair",
+  "student_target": "verification_only",
+  "response_schema": {
+    "decision": "accept|reject",
+    "issue_tags": "string[]",
+    "number_policy_ok": "boolean",
+    "evidence_span": "string",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "qwen3_235b_a22b_2507_q5_sft700_targeted_repair_verifier_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {"type": "string", "enum": ["accept", "reject"]},
+          "issue_tags": {
+            "type": "array",
+            "items": {"type": "string", "enum": [
+              "wrong_number", "unsupported_number", "metric_role_flip", "decimal_corruption", "numeric_error",
+              "misses_point", "unsupported_entity", "unsupported_mechanism", "mechanism_flip", "generic_smoothing",
+              "repetition", "grammar", "too_long", "too_short", "title_rehash", "style_drift", "copies_bad_summary", "local_filter", "none"
+            ]}
+          },
+          "number_policy_ok": {"type": "boolean"},
+          "evidence_span": {"type": "string"},
+          "reason_span": {"type": "string"}
+        },
+        "required": ["decision", "issue_tags", "number_policy_ok", "evidence_span", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You verify repaired summary targets for a small mobile research feed model. Return one JSON object only.\n\nAccept only if ALL are true:\n- The repaired summary is faithful to the title and abstract.\n- It fixes the checkpoint-700 failure and does not preserve the bad claim.\n- It is one useful sentence, 10 to 15 whitespace-separated words.\n- It is natural feed copy, not a title rehash or bland topic label.\n- It avoids unsupported numbers, entities, mechanisms, comparisons, causal claims, and polarity flips.\n- If it includes a number, percentage, unit, decimal, range, or comparison, it is bound to the exact object, metric, condition, and direction from the abstract.\n- It does not blindly remove a central supported number when that number is necessary for the main takeaway.\n- It does not invent a smoother but less precise theorem, mechanism, dataset, method, or result.\n- It does not open with \"This paper\", \"The paper\", \"The authors\", \"We propose\", or \"In this work\".\n\nReject if:\n- Any number is unsupported, rounded incorrectly, stripped of an important decimal/unit, or attached to the wrong metric.\n- The summary sounds fluent but misses the point, overgeneralizes, or changes the mechanism.\n- The summary is generic, tautological, repetitive, ungrammatical, too long, too short, formula-heavy, or title-like.\n- It copies the checkpoint-700 bad summary's failure.\n\nEvidence span\n- For accept, quote a short source phrase supporting the repaired summary.\n- For reject, evidence_span may be empty unless a short source phrase makes the error obvious.\n\nIssue tags\n- Use none only for accepted rows with no remaining issue.\n- Use number_policy_ok=false whenever a numeric detail is wrong, unsupported, or misbound.\n\nOutput schema: {\"decision\":\"accept|reject\",\"issue_tags\":[],\"number_policy_ok\":true|false,\"evidence_span\":\"\",\"reason_span\":\"\"}",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCHECKPOINT-700 BAD SUMMARY:\n{bad_summary}\n\nPRE-DPO SUMMARY FOR CONTEXT ONLY:\n{pre_dpo_summary}\n\nTRIAGE FAILURE TAGS:\n{failure_tags}\n\nTRIAGE REASON:\n{short_reason}\n\nREPAIR WRITER DECISION:\n{writer_decision}\n\nREPAIR ISSUE TAGS:\n{writer_issue_tags}\n\nREPAIR NUMBER POLICY:\n{number_policy}\n\nREPAIR EVIDENCE SPAN:\n{writer_evidence_span}\n\nREPAIRED SUMMARY:\n{repair_summary}\n\nREPAIR REASON:\n{writer_reason_span}"
+}

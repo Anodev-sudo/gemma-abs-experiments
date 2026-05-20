@@ -1,0 +1,73 @@
+{
+  "prompt_version": "kimi_k2_6_clean2250_runtime_drift_repair_writer_v1",
+  "role": "clean2250_runtime_drift_repair_writer",
+  "teacher_input": "title_abstract_gguf_bad_summary_peft_reference",
+  "student_target": "faithful_simple_under14_feed_summary",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "grounding_policy": "string",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_clean2250_runtime_drift_repair_writer_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["rewrite", "drop"]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "gguf_too_long",
+                "gguf_repetition",
+                "gguf_added_number",
+                "gguf_notation_drift",
+                "gguf_wrong_object",
+                "gguf_wrong_focus",
+                "peft_reference_good",
+                "peft_reference_partial",
+                "abstract_too_vague",
+                "none"
+              ]
+            },
+            "maxItems": 5,
+            "uniqueItems": true
+          },
+          "grounding_policy": {
+            "type": "string",
+            "enum": ["use_peft_reference", "revise_peft_reference", "write_from_abstract", "drop"]
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "word_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 14
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": ["decision", "issue_tags", "grounding_policy", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You write repair labels for a small paper-summary model deployed through a GGUF LoRA sidecar. Return one JSON object only.\n\nGoal\n- Produce one faithful, simple, readable summary sentence for a mobile research feed.\n- The app already shows title, authors, and date.\n- The deployed GGUF output drifted longer or less faithful than native PEFT.\n- Use the native PEFT summary as a helpful reference, not as authority.\n- The title and abstract are the authority.\n\nHard summary rules\n- Exactly one natural sentence.\n- 8 to 14 whitespace-separated words, inclusive.\n- Aim for 10 to 12 words.\n- End with exactly one period.\n- Do not include another period, question mark, or exclamation mark inside the sentence.\n- Do not use semicolons.\n- Do not start with: This paper, The paper, The authors, We propose, In this work, In this paper.\n- Do not mention authors or dates.\n- Do not merely paraphrase the title.\n- Avoid formulas, HTML, bracketed notation, and dense acronyms unless central and plain.\n- Avoid exact numbers unless the central claim would be misleading without them.\n- Prefer a cautious qualitative hook over a risky precise one.\n\nRepair policy\n- If the PEFT reference is faithful and simple, use it or make it slightly cleaner.\n- If PEFT misses the point, write a fresh summary from the abstract.\n- If the abstract does not support a useful short label, choose drop.\n- Never copy the bad GGUF summary's repetition, malformed notation, or unsupported detail.\n\nOutput rules\n- For rewrite, summary is the final label.\n- For drop, summary and evidence_span are empty and word_count is 0.\n- evidence_span is a short phrase from the abstract supporting the summary.\n- reason_span is under 12 words.\n- word_count must equal whitespace-separated words in summary.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nBAD GGUF CHECKPOINT-800 SUMMARY:\n{bad_summary}\n\nNATIVE PEFT CHECKPOINT-800 REFERENCE SUMMARY:\n{q8_summary}\n\nRUNTIME DRIFT FLAGS:\n{failure_family}\n\nDIAGNOSTIC NOTE:\n{reviewer_note}\n\nREQUEST:\nWrite the repaired under-15-word label now."
+}

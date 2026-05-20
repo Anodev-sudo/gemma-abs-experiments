@@ -1,0 +1,34 @@
+{
+  "prompt_version": "qwen3_235b_a22b_2507_q5_numeric_ideal200_verifier_v2",
+  "role": "q5_numeric_ideal200_consistent_verifier",
+  "teacher_input": "title_abstract_candidate_no_number_summary",
+  "student_target": "verification_only",
+  "response_schema": {
+    "decision": "accept|reject",
+    "issue_tags": "string[]",
+    "number_policy_ok": "boolean",
+    "evidence_span": "string",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "qwen3_235b_a22b_2507_q5_numeric_ideal200_verifier_v2",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {"type": "string", "enum": ["accept", "reject"]},
+          "issue_tags": {"type": "array", "items": {"type": "string", "enum": ["contains_digit_or_number", "formula_or_symbol", "wrong_metric_binding", "wrong_polarity", "semantic_drift", "unsupported_claim", "too_vague", "too_generic", "not_source_grounded", "too_long", "too_short", "title_rehash", "bad_opening", "not_single_sentence", "awkward", "copies_risky_summary", "none"]}},
+          "number_policy_ok": {"type": "boolean"},
+          "evidence_span": {"type": "string"},
+          "reason_span": {"type": "string"}
+        },
+        "required": ["decision", "issue_tags", "number_policy_ok", "evidence_span", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You verify no-number training labels for a small mobile research feed model. Return one JSON object only.\n\nImportant consistency rule\n- If there is no concrete failure, return decision=accept and issue_tags=[\"none\"].\n- If decision=reject, issue_tags must NOT include \"none\". Pick the real failure tag.\n- Do not reject a good candidate merely because the abstract contains numbers. The goal is to omit risky exact numbers.\n- Do not reject because the candidate is less detailed than the abstract if it preserves a faithful useful qualitative takeaway.\n\nAccept if ALL are true:\n- Candidate is faithful to title and abstract.\n- Candidate is one natural sentence, 10 to 15 whitespace-separated words.\n- Candidate contains no digits, percentages, ranges, exact units, equations, Greek symbols, inequality symbols, HTML, formula notation, complexity notation, or digit-letter shorthand.\n- Candidate does not spell exact quantities as words.\n- Candidate preserves metric role and polarity qualitatively when those are relevant.\n- Candidate has at least one meaningful source-grounded noun or phrase.\n- Candidate is useful enough for a mobile feed and not merely a title rehash.\n- Candidate avoids unsupported entities, mechanisms, comparisons, causal claims, and hidden quantitative superlatives.\n- Candidate does not copy the risky q5 summary's numeric error.\n\nReject only for concrete failures:\n- exact number/formula residue in the candidate;\n- wrong entity, mechanism, role, polarity, certainty, or causal direction;\n- unsupported hidden quantitative claim such as most, often, widespread, best, highest, largest, strong, significant;\n- too generic to distinguish this paper from many others;\n- not source grounded;\n- too long, too short, awkward, bad opening, not one sentence, or title rehash.\n\nFor accepted rows, quote a short supporting phrase from the abstract and use issue_tags=[\"none\"]. For rejected rows, reason_span must briefly name the actual failure, not restate the summary.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCHECKPOINT-700 RISKY SUMMARY, WARNING ONLY:\n{bad_summary}\n\nOPTIONAL PRIOR BAD SUMMARY, WARNING ONLY:\n{pre_dpo_summary}\n\nFAILURE TAGS:\n{failure_tags}\n\nWRITER DECISION:\n{writer_decision}\n\nWRITER ISSUE TAGS:\n{writer_issue_tags}\n\nWRITER NUMBER POLICY:\n{number_policy}\n\nWRITER EVIDENCE SPAN:\n{writer_evidence_span}\n\nCANDIDATE CLEAN SUMMARY:\n{repair_summary}\n\nWRITER REASON:\n{writer_reason_span}"
+}

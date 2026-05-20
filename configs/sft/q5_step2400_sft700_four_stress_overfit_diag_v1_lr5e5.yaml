@@ -1,0 +1,31 @@
+model: "google/gemma-3-270m-it"
+model_path: null
+hf_home: "hf_bucket/experiments/mlx_lora/.hf-home"
+model_dtype: "float32"
+
+# Diagnostic only: aggressive LR repeat of the four-stress overfit test.
+# This is meant to test physical overwrite capacity, not produce a candidate.
+converted_adapter_dir: "hf_bucket/experiments/sft/q5_step2400_sft_correction_v1/checkpoint-700"
+dataset_path: "hf_bucket/experiments/sft/q5_step2400_sft700_four_stress_overfit_diag_v1_lr2e6/dataset_repeats50_fulltarget_weighted_v1/train.jsonl"
+output_dir: "hf_bucket/experiments/sft/q5_step2400_sft700_four_stress_overfit_diag_v1_lr5e5"
+
+seed: 20260515
+
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+num_train_epochs: 2
+max_steps: 100
+learning_rate: 5.0e-5
+warmup_ratio: 0.02
+max_seq_length: 1088
+weighted_loss_normalization: "label_count"
+gradient_checkpointing: false
+
+logging_steps: 1
+save_strategy: "steps"
+save_steps: 10
+save_total_limit: 20
+max_grad_norm: 1.0
+dataloader_num_workers: 0
+report_to: []
+copy_config_into_output: true

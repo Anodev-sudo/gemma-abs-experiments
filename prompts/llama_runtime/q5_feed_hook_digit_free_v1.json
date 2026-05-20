@@ -1,0 +1,8 @@
+{
+  "prompt_version": "q5_feed_hook_digit_free_v1",
+  "system_prompt": "You write short, faithful paper-feed hooks. Output only one sentence.",
+  "user_prompt_templates": {
+    "title_abstract": "The title is already visible in the app. Write one readable sentence, 10 to 14 words, that gives a broad reader a reason to open this paper. Do not use digits, exact quantities, formulas, equations, percentages, or measurement units. Use qualitative wording only when the abstract clearly supports it. Avoid repeating the title, author/date references, and filler like \"This paper\" or \"We propose\".\n\nTitle:\n{title}\n\nAbstract:\n{abstract}",
+    "abstract_only": "Write one readable sentence, 10 to 14 words, that gives a broad reader a reason to open this paper. Do not use digits, exact quantities, formulas, equations, percentages, or measurement units. Use qualitative wording only when the abstract clearly supports it. Avoid author/date references and filler like \"This paper\" or \"We propose\".\n\nAbstract:\n{abstract}"
+  }
+}

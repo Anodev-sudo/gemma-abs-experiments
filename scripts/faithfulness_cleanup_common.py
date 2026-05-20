@@ -82,6 +82,65 @@ CLAIMY_ADJECTIVE_RE = re.compile(
     r"better|optimal|state-of-the-art|reliable|practical)\b",
     re.IGNORECASE,
 )
+
+COMMON_COMPOUND_PHRASES: set[str] = {
+    "end-to-end",
+    "state-of-the-art",
+    "out-of-the-box",
+    "out-of-distribution",
+    "on-the-fly",
+    "off-the-shelf",
+    "over-the-air",
+    "point-to-point",
+    "peer-to-peer",
+    "human-in-the-loop",
+    "one-shot",
+    "few-shot",
+    "zero-shot",
+    "fine-tuned",
+    "pre-trained",
+    "well-known",
+    "well-established",
+    "real-world",
+    "state-of-the-art",
+    "step-by-step",
+    "high-quality",
+    "low-cost",
+    "large-scale",
+    "small-scale",
+    "long-range",
+    "short-range",
+    "non-linear",
+    "non-convex",
+    "non-stationary",
+    "non-iid",
+    "non-i.i.d.",
+    "self-supervised",
+    "self-attention",
+    "cross-entropy",
+    "cross-validation",
+    "cross-modal",
+    "cross-domain",
+    "multi-task",
+    "multi-modal",
+    "multi-agent",
+    "multi-scale",
+    "multi-view",
+    "multi-label",
+    "multi-class",
+    "multi-objective",
+    "single-stage",
+    "single-shot",
+    "two-stage",
+    "two-step",
+    "five-fold",
+    "ten-fold",
+    "k-fold",
+    "k-means",
+    "k-nearest",
+    "t-SNE",
+    "t-test",
+}
 NUMBER_RE = re.compile(
     r"\b\d+(?:,\d{3})*(?:\.\d+)?(?:%|x|X|×|k|K|m|M|b|B)?\b|"
     r"\b(?:" + "|".join(sorted(NUMBER_WORDS, key=len, reverse=True)) + r")\b",
@@ -91,6 +150,7 @@ LABEL_RE = re.compile(
     r"\b(?:[A-Z]{2,}[A-Za-z0-9-]*|[A-Za-z]+-[A-Za-z0-9-]+|"
     r"[A-Za-z]*\d+[A-Za-z0-9-]*)\b"
 )
+_ALL_LOWERCASE_LABEL_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 NUMERIC_LABEL_RE = re.compile(r"^\d+(?:\.\d+)?(?:%|x|X|×|k|K|m|M|b|B)?$")
 YEAR_RE = re.compile(r"^(?:19|20)\d{2}$")
 TOKEN_STRIP_CHARS = ".,;:!?()[]{}<>\"'`“”‘’"
@@ -172,6 +232,32 @@ def canonical_number(value: str) -> str:
     return cleaned
 
 
+def _comparable_number(canonical: str) -> str:
+    return re.sub(r"[xX×%kmbKM]?$", "", canonical)
+
+
+def _is_acronym_match(label: str, source_text: str) -> bool:
+    """Check whether *label* is an acronym built from words in the source.
+
+    Matches each uppercase letter of *label* against the first letter of a
+    sequence of source words in order, with gaps permitted (e.g. the 'E' in
+    'BERT' can match 'Encoder' even if other words sit between 'Bidirectional'
+    and 'Representations').
+    """
+    initials = "".join(char for char in label if char.isupper() and char.isalpha())
+    if len(initials) < 2:
+        return False
+    source_words = re.findall(r"[A-Za-z][A-Za-z0-9-]*", source_text)
+    initials_lower = initials.lower()
+    pos = 0
+    for word in source_words:
+        if pos >= len(initials_lower):
+            break
+        if word[0].lower() == initials_lower[pos]:
+            pos += 1
+    return pos == len(initials_lower)
+
+
 def numeric_mentions(value: str) -> list[dict[str, str]]:
     mentions: list[dict[str, str]] = []
     for match in NUMBER_RE.finditer(value):
@@ -187,6 +273,10 @@ def source_supports_token(source_text: str, raw: str, canonical: str | None = No
     if numeric_mentions(raw):
         if canonical is None:
             canonical = canonical_number(raw)
+        comparable = _comparable_number(canonical)
+        source_comparable = {_comparable_number(item["canonical"]) for item in numeric_mentions(source_text)}
+        if comparable in source_comparable:
+            return True
         source_numbers = {item["canonical"] for item in numeric_mentions(source_text)}
         return canonical in source_numbers
 
@@ -198,6 +288,8 @@ def source_supports_token(source_text: str, raw: str, canonical: str | None = No
         source_numbers = {item["canonical"] for item in numeric_mentions(source_text)}
         if canonical in source_numbers:
             return True
+    if _is_acronym_match(raw, source_text):
+        return True
     return False
 
 
@@ -217,12 +309,28 @@ def unsupported_numbers(summary: str, source_text: str) -> list[str]:
     return unsupported
 
 
+def _label_is_plausible_entity(raw: str) -> bool:
+    """Filter out digit-prefixed terms and lowercase adjective compounds
+    that match LABEL_RE patterns 2 or 3 but are not named entities."""
+    if _ALL_LOWERCASE_LABEL_RE.match(raw):
+        return False
+    # Digit-prefixed terms: '2D', '3D', '10B-parameter', '2-Wasserstein'
+    if raw[0].isdigit():
+        return False
+    return True
+
+
 def label_mentions(value: str) -> list[str]:
     mentions: list[str] = []
     seen: set[str] = set()
     for match in LABEL_RE.finditer(value):
         raw = match.group(0).strip(TOKEN_STRIP_CHARS)
-        if not raw or raw.casefold() in seen:
+        raw_lower = raw.casefold()
+        if not raw or raw_lower in seen:
+            continue
+        if raw_lower in COMMON_COMPOUND_PHRASES:
+            continue
+        if not _label_is_plausible_entity(raw):
             continue
         if not any(char.isalpha() for char in raw):
             continue
@@ -230,7 +338,7 @@ def label_mentions(value: str) -> list[str]:
             continue
         if NUMERIC_LABEL_RE.fullmatch(raw.replace(",", "")):
             continue
-        seen.add(raw.casefold())
+        seen.add(raw_lower)
         mentions.append(raw)
     return mentions
 

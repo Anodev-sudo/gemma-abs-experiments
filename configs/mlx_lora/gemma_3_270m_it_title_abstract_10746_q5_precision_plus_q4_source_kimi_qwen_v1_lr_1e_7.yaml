@@ -1,0 +1,40 @@
+# MLX LoRA config for the expanded q5 precision overlay pool.
+
+model: "hf_bucket/experiments/mlx_lora/quantized_models/google_gemma_3_270m_it/q4_g64"
+train: true
+fine_tune_type: lora
+optimizer: adamw
+
+data: "hf_dataset/releases/recent_3y_balanced_10746_q5_precision_plus_q4_source_kimi_qwen_v1/mlx_lora/title_abstract_chat_gemma_270m_it_abstract_to_glanceable_summary_v1"
+
+seed: 20260507
+num_layers: -1
+
+batch_size: 4
+iters: 125
+val_batches: -1
+
+learning_rate: 1e-7
+steps_per_report: 10
+steps_per_eval: 25
+grad_accumulation_steps: 2
+
+resume_adapter_file: "hf_bucket/experiments/mlx_lora/gemma_3_270m_it_title_abstract_10746_q5_final_guardrail_overlay_replay_v2_lr_2e_7/adapters/0000075_adapters.safetensors"
+
+adapter_path: "hf_bucket/experiments/mlx_lora/gemma_3_270m_it_title_abstract_10746_q5_precision_plus_q4_source_kimi_qwen_v1_lr_1e_7/adapters"
+save_every: 25
+test: true
+test_batches: -1
+max_seq_length: 1024
+
+grad_checkpoint: true
+
+lora_parameters:
+  keys:
+    - "self_attn.q_proj"
+    - "self_attn.k_proj"
+    - "self_attn.v_proj"
+    - "self_attn.o_proj"
+  rank: 16
+  scale: 10.0
+  dropout: 0.0

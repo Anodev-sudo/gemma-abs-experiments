@@ -1,0 +1,38 @@
+{
+  "prompt_version": "kimi_k2_6_q5_numeric_controlled_abstraction_clean_v2_force_rewrite",
+  "role": "q5_numeric_controlled_abstraction_clean_writer",
+  "teacher_input": "title_abstract_checkpoint700_numeric_failure_context",
+  "student_target": "source_grounded_no_number_controlled_abstraction",
+  "response_schema": {
+    "decision": "rewrite",
+    "issue_tags": "string[]",
+    "number_policy": "no_exact_numbers",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_numeric_controlled_abstraction_clean_v2_force_rewrite",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {"type": "string", "enum": ["rewrite"]},
+          "issue_tags": {"type": "array", "items": {"type": "string", "enum": ["removed_risky_number", "numeric_risk", "metric_role_risk", "formula_risk", "polarity_risk", "source_grounded_terms", "safe_abstraction", "none"]}},
+          "number_policy": {"type": "string", "enum": ["no_exact_numbers"]},
+          "evidence_span": {"type": "string"},
+          "summary": {"type": "string"},
+          "word_count": {"type": "integer", "minimum": 10, "maximum": 15},
+          "reason_span": {"type": "string"}
+        },
+        "required": ["decision", "issue_tags", "number_policy", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You write clean supervised-finetuning labels for a small mobile research feed model. Return one JSON object only. Always return decision=\"rewrite\" and number_policy=\"no_exact_numbers\".\n\nPurpose\n- The target model corrupts exact numbers and binds metrics to the wrong role.\n- Teach safe qualitative abstraction, not exact metric copying.\n- Use only the title and abstract as evidence. Risky summaries are warnings only.\n\nOutput target\n- One sentence, 10 to 13 words preferred; 14 or 15 allowed.\n- No digits, exact quantities, percentages, units, formulas, HTML, Greek symbols, inequalities, or equations.\n- Do not spell exact quantities as words.\n- End with exactly one period. No semicolon.\n- No \"This paper\", \"The paper\", \"The authors\", \"We propose\", or \"In this work\".\n\nControlled abstraction recipe\n- Choose one source-grounded subject from the title or abstract.\n- Choose one supported action or takeaway.\n- Omit fragile exact metrics and formula details.\n- Preserve direction and polarity qualitatively: improves, reduces, detects, reveals, estimates, preserves, compresses, clarifies, supports, enables, bounds, exposes, rules out.\n- If exact metric roles are risky, keep the role direction and remove the numbers.\n- Prefer source-specific nouns over generic phrases.\n\nGood shape examples, not labels\n- \"Scheduling improves training throughput while reducing computing costs.\"\n- \"Observations reveal common debris trails around short-period comets.\"\n- \"Compression preserves visual fidelity while reducing model storage.\"\n\nBad shapes\n- Too generic: \"A method improves performance for a technical system.\"\n- Number residue: any digit, percentage, unit, formula, range, or exponent.\n- Role flip: making a throughput improvement into a cost improvement.\n\nBefore returning, count words. If over 15 words, remove mechanism details. If under 10 words, add a source-grounded domain noun.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCHECKPOINT-700 RISKY SUMMARY, WARNING ONLY:\n{bad_summary}\n\nOPTIONAL PRIOR SUMMARY, CONTEXT ONLY:\n{pre_dpo_summary}\n\nCHECKPOINT-700 FAILURE TAGS:\n{failure_tags}\n\nSELECTION REASON:\n{short_reason}\n\nWrite the clean controlled-abstraction label now."
+}

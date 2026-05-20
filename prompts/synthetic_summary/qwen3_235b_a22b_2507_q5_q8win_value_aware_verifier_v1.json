@@ -1,0 +1,60 @@
+{
+  "prompt_version": "qwen3_235b_a22b_2507_q5_q8win_value_aware_verifier_v1",
+  "role": "q5_q8win_value_aware_verifier",
+  "teacher_input": "title_abstract_q8_winning_summary_q5_losing_summary_correction",
+  "student_target": "verification_only",
+  "response_schema": {
+    "decision": "accept|reject",
+    "issue_tags": "string[]",
+    "evidence_span": "string",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "qwen3_235b_a22b_2507_q5_q8win_value_aware_verifier_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": { "type": "string", "enum": ["accept", "reject"] },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "invented_number",
+                "wrong_number_binding",
+                "numeric_error",
+                "unsupported_number",
+                "unsupported_entity",
+                "unsupported_entity_label",
+                "unsupported_mechanism",
+                "unsupported_causal_claim",
+                "overstrong_claim",
+                "polarity_flip",
+                "polarity_risk",
+                "misses_point",
+                "malformed_repetition",
+                "non_answer",
+                "title_rehash",
+                "too_generic",
+                "copies_q5_failure",
+                "style_drift",
+                "local_filter",
+                "none"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "evidence_span": { "type": "string" },
+          "reason_span": { "type": "string" }
+        },
+        "required": ["decision", "issue_tags", "evidence_span", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You are the strict verifier for a value-aware q5 repair dataset. Return one JSON object only.\n\nDefault posture\n- The title and abstract are the only authority.\n- The q8 summary won a blind comparison, but it can still be wrong.\n- Accept only corrections that are faithful, readable, and materially better than the current q5 losing summary.\n\nAccept when all conditions are true\n- The corrected summary is exactly one sentence and 10 to 15 whitespace-separated words inclusive.\n- It gives a concrete reason to open the paper.\n- It is supported by the abstract and does not merely copy the title.\n- It avoids the q5 losing summary's wrong binding, unsupported entity, polarity error, malformed wording, or generic abstraction.\n- Any number used is central, readable, and attached to exactly the correct object, metric, condition, and direction.\n- If no number is used, the omission is safe and the result remains informative.\n\nReject when any condition is true\n- The summary is less informative than the q8 hint without being safer.\n- It invents or misbinds a number, entity, method, dataset, material, disease, metric, or mechanism.\n- It flips polarity, direction, limitation, uncertainty, or scope.\n- It makes an improvement, reduction, causal, benchmark, or superiority claim without explicit support.\n- It preserves the q5 losing summary's unsupported or malformed claim structure.\n- It is too generic, too dense, overlong, too short, formula-like, or awkward for a mobile feed.\n\nEvidence span\n- For accept, quote a short source phrase supporting the corrected summary.\n- For reject, evidence_span should be empty unless a source phrase makes the mismatch obvious.\n\nIssue tags\n- Use none only for accepted rows with no remaining issue.\n- Use wrong_number_binding for real numbers attached to the wrong metric, object, condition, or direction.\n- Use unsupported_number for absent or unsupported values.\n- Use unsupported_entity for wrong names, materials, datasets, organisms, instruments, or domains.\n- Use misses_point for vague corrections that omit the useful claim.\n\nOutput schema: {\"decision\":\"accept|reject\",\"issue_tags\":[],\"evidence_span\":\"\",\"reason_span\":\"\"}",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nQ8 WINNING SUMMARY HINT:\n{q8_summary}\n\nCURRENT Q5 LOSING SUMMARY:\n{q5_summary}\n\nQ5 ISSUE TAGS:\n{q5_issue_tags}\n\nBLIND REVIEW NOTE:\n{reviewer_note}\n\nCORRECTION WRITER:\n{correction_writer}\n\nCORRECTED SUMMARY:\n{correction_summary}\n\nCORRECTION ISSUE TAGS:\n{correction_issue_tags}\n\nCORRECTION EVIDENCE SPAN:\n{correction_evidence_span}\n\nCORRECTION REASON SPAN:\n{correction_reason_span}"
+}

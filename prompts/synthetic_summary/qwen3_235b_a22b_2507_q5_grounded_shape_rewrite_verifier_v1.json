@@ -1,0 +1,84 @@
+{
+  "prompt_version": "qwen3_235b_a22b_2507_q5_grounded_shape_rewrite_verifier_v1",
+  "role": "q5_grounded_shape_rewrite_verifier",
+  "teacher_input": "title_abstract_checkpoint_failure_prior_target_diagnostic_note_candidate_repair",
+  "student_target": "verification_only",
+  "response_schema": {
+    "decision": "accept|reject",
+    "issue_tags": "string[]",
+    "grounding_ok": "boolean",
+    "number_policy_ok": "boolean",
+    "evidence_span": "string",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "qwen3_235b_a22b_2507_q5_grounded_shape_rewrite_verifier_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["accept", "reject"]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "contains_digit_or_number",
+                "formula_or_symbol",
+                "wrong_object",
+                "wrong_mechanism",
+                "wrong_polarity",
+                "lost_key_result",
+                "lost_caveat",
+                "semantic_drift",
+                "unsupported_claim",
+                "invented_technical_glue",
+                "nearby_object_leakage",
+                "digit_name_leakage",
+                "rare_token_risk",
+                "too_vague",
+                "too_generic",
+                "not_source_grounded",
+                "too_long",
+                "too_short",
+                "title_rehash",
+                "bad_opening",
+                "not_single_sentence",
+                "awkward",
+                "repetition",
+                "copies_checkpoint_failure",
+                "copies_q8_metric",
+                "copies_prior_brittle_target",
+                "hidden_benchmark_or_superlative",
+                "none"
+              ]
+            },
+            "maxItems": 5,
+            "uniqueItems": true
+          },
+          "grounding_ok": {
+            "type": "boolean"
+          },
+          "number_policy_ok": {
+            "type": "boolean"
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": ["decision", "issue_tags", "grounding_ok", "number_policy_ok", "evidence_span", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You verify high-scrutiny repair labels for a tiny mobile research-feed model. Return one JSON object only.\n\nThe candidate is for a row previously quarantined by overfit diagnostics. Reject when ambiguous. A fluent sentence is not enough; it must avoid the diagnosed trap.\n\nAccept only if ALL are true:\n- Candidate is faithful to the title and abstract.\n- Candidate preserves the real object, result, caveat, task, or qualitative role.\n- Candidate directly addresses the diagnostic failure bucket and does not repeat the brittle behavior.\n- Candidate does not invent entities, materials, mechanisms, instruments, populations, datasets, causal links, or application domains.\n- Candidate does not promote a nearby object, caveat, comparison object, or secondary motivation into the main result.\n- Candidate avoids exact digit-heavy catalog names or source identifiers when the task calls for role-level abstraction.\n- Candidate uses rare terms only when they are necessary and source-supported.\n- Candidate is exactly one natural sentence and 10 to 15 whitespace-separated words.\n- Candidate contains no digits, exact written quantities, percentages, ranges, equations, HTML, formula notation, or digit-letter shorthand.\n- Candidate does not copy Q8's fragile exact metric, checkpoint-218's bad wording, or the prior brittle target when the note says to reconsider it.\n- Candidate is concrete enough for a mobile feed and not merely a title rehash.\n- Candidate is grammatical, non-repetitive, and not awkward.\n\nReject for any concrete failure: digit residue, exact quantity word, wrong object, wrong mechanism, wrong value binding, polarity flip, unsupported claim, nearby-object leakage, invented technical glue, too generic, lost key result, title rehash, awkward phrasing, malformed wording, or not source grounded.\n\nFor accepted rows, use issue_tags=[\"none\"], grounding_ok=true, number_policy_ok=true, and quote a short supporting phrase from the abstract. For rejected rows, issue_tags must not include \"none\" and reason_span must name the actual failure.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nQ8 MLX-PYTHON SUMMARY, CLUE ONLY:\n{q8_summary}\n\nCHECKPOINT-218 SUMMARY TO REPAIR:\n{bad_summary}\n\nDIAGNOSTIC FAILURE BUCKET:\n{failure_family}\n\nHUMAN/DIAGNOSTIC NOTE:\n{reviewer_note}\n\nCURATION NOTE WITH PRIOR TARGET AND OVERFIT BEHAVIOR:\n{category_note}\n\nWRITER DECISION:\n{writer_decision}\n\nWRITER ISSUE TAGS:\n{writer_issue_tags}\n\nWRITER GROUNDING POLICY:\n{grounding_policy}\n\nWRITER EVIDENCE SPAN:\n{writer_evidence_span}\n\nCANDIDATE REPAIR SUMMARY:\n{repair_summary}\n\nWRITER REASON:\n{writer_reason_span}"
+}

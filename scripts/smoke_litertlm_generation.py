@@ -9,7 +9,9 @@ the output is empty or obviously degenerate if --fail-on-degenerate is set.
 from __future__ import annotations
 
 import argparse
+import os
 import re
+import sys
 from pathlib import Path
 
 import litert_lm
@@ -54,9 +56,26 @@ def looks_degenerate(text: str) -> bool:
             return True
     if re.search(r"\b([a-zA-Z][a-zA-Z'-]{1,})\b(?:\W+\1\b){3,}", lowered):
         return True
+    if re.search(r"([^\s])\1{12,}", stripped):
+        return True
     if re.search(r"([a-zA-Z]-){5,}", stripped):
         return True
     return False
+
+
+def create_conversation(engine: litert_lm.Engine, sampler_config: SamplerConfig):
+    try:
+        return engine.create_conversation(
+            system_message=SYSTEM_PROMPT,
+            sampler_config=sampler_config,
+        )
+    except TypeError as exc:
+        if "system_message" not in str(exc):
+            raise
+        return engine.create_conversation(
+            messages=[{"role": "system", "content": SYSTEM_PROMPT}],
+            sampler_config=sampler_config,
+        )
 
 
 def parse_args() -> argparse.Namespace:
@@ -67,11 +86,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cache-dir", default="/tmp/litert-cache")
     parser.add_argument("--max-num-tokens", type=int, default=768)
     parser.add_argument("--fail-on-degenerate", action="store_true")
+    parser.add_argument(
+        "--hard-exit-after-print",
+        action="store_true",
+        help="Exit immediately after printing the smoke result to avoid LiteRT teardown hangs.",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    Path(args.cache_dir).mkdir(parents=True, exist_ok=True)
     engine = litert_lm.Engine(
         str(args.model),
         backend=Backend.CPU,
@@ -79,9 +104,9 @@ def main() -> int:
         cache_dir=args.cache_dir,
         enable_speculative_decoding=False,
     )
-    conversation = engine.create_conversation(
-        system_message=SYSTEM_PROMPT,
-        sampler_config=SamplerConfig(
+    conversation = create_conversation(
+        engine,
+        SamplerConfig(
             top_k=1,
             top_p=1.0,
             temperature=0.0,
@@ -106,7 +131,12 @@ def main() -> int:
     degenerate = looks_degenerate(text)
     print("SUMMARY:", text.strip())
     print("DEGENERATE:", "yes" if degenerate else "no")
-    return 2 if degenerate and args.fail_on_degenerate else 0
+    exit_code = 2 if degenerate and args.fail_on_degenerate else 0
+    if args.hard_exit_after_print:
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(exit_code)
+    return exit_code
 
 
 if __name__ == "__main__":

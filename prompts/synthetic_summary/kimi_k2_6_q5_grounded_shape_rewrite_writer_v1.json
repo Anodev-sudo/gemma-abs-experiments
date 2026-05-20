@@ -1,0 +1,73 @@
+{
+  "prompt_version": "kimi_k2_6_q5_grounded_shape_rewrite_writer_v1",
+  "role": "q5_grounded_shape_rewrite_writer",
+  "teacher_input": "title_abstract_checkpoint_failure_prior_target_diagnostic_note",
+  "student_target": "grounded_digit_free_feed_summary",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "grounding_policy": "preserve_object_result|drop",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_grounded_shape_rewrite_writer_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["rewrite", "drop"]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "digit_name_leakage",
+                "nearby_object_leakage",
+                "rare_token_deformation",
+                "rare_term_morphology",
+                "secondary_result_attractor",
+                "method_detail_dropout",
+                "source_result_competition",
+                "source_grounded_role",
+                "natural_feed_style",
+                "none"
+              ]
+            },
+            "maxItems": 5,
+            "uniqueItems": true
+          },
+          "grounding_policy": {
+            "type": "string",
+            "enum": ["preserve_object_result", "drop"]
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "word_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": ["decision", "issue_tags", "grounding_policy", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You write strict repair labels for a tiny mobile research-feed model. Return one JSON object only.\n\nThe previous target was quarantined because overfit diagnostics showed it created brittle behavior or failed to beat a stronger source/title attractor. Your job is to write a better label, not to preserve the old target.\n\nGoal:\n- Produce one faithful, useful, digit-free summary sentence.\n- Preserve the source's real object, result, caveat, task, or qualitative role.\n- Prefer a grounded simple phrase that a small model can learn without copying exact identifiers or inventing nearby objects.\n\nHard rules for the summary:\n- One natural sentence, 10 to 14 words preferred, 15 words maximum.\n- End with exactly one period.\n- No digits anywhere.\n- Do not spell exact quantities as words.\n- No formulas, equations, ranges, HTML, or digit-letter shorthand.\n- Avoid exact catalog names or source names with numbers; abstract them to the object role when possible.\n- Avoid exact units except broad domain phrases such as X-ray or gamma-ray.\n- Do not invent entities, materials, mechanisms, instruments, populations, datasets, causal links, or application domains.\n- Do not promote a nearby object, caveat, comparison object, or secondary motivation into the main result.\n- Do not use rare coined terms when a plainer source-grounded phrase preserves the meaning better.\n- Do not use vague technical glue such as framework, pipeline, structure, patterns, or constraints unless the abstract directly supports it.\n- Do not start with: This paper, The paper, The authors, The work, We propose, In this work, In this paper.\n- Avoid: most, best, highest, largest, superior, state-of-the-art, outperforms, outperform, dramatic, major, significant.\n- Do not merely paraphrase the title.\n\nDiagnostic-specific repair policy:\n- For digit-name leakage, avoid the exact numbered object name and summarize the role instead.\n- For nearby-object leakage, name the true object and clearly avoid making the nearby object causal or central.\n- For rare-token deformation, replace the brittle rare token with a plain source-grounded phrase unless the rare term is essential.\n- For method dropout, keep the important method only if it is source-supported and learnable in simple words.\n- For secondary-result attraction, choose the main result that best answers why a reader might open the paper.\n- If no faithful, concrete, digit-free sentence fits, choose drop.\n\nOutput rules:\n- For rewrite, summary is the final label.\n- For drop, summary and evidence_span are empty, word_count is 0, grounding_policy is drop.\n- evidence_span is a short phrase from the abstract supporting the summary.\n- reason_span is under 12 words.\n- word_count must equal whitespace-separated words in the summary.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nQ8 MLX-PYTHON SUMMARY, CLUE ONLY:\n{q8_summary}\n\nCHECKPOINT-218 SUMMARY TO REPAIR:\n{bad_summary}\n\nDIAGNOSTIC FAILURE BUCKET:\n{failure_family}\n\nHUMAN/DIAGNOSTIC NOTE:\n{reviewer_note}\n\nCURATION NOTE WITH PRIOR TARGET AND OVERFIT BEHAVIOR:\n{category_note}\n\nWrite the improved grounded digit-free repair label now."
+}

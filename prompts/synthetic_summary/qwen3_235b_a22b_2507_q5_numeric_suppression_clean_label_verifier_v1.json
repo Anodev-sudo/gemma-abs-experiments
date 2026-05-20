@@ -1,0 +1,41 @@
+{
+  "prompt_version": "qwen3_235b_a22b_2507_q5_numeric_suppression_clean_label_verifier_v1",
+  "role": "q5_numeric_suppression_clean_label_verifier",
+  "teacher_input": "title_abstract_candidate_clean_label",
+  "student_target": "verification_only",
+  "response_schema": {
+    "decision": "accept|reject",
+    "issue_tags": "string[]",
+    "number_policy_ok": "boolean",
+    "evidence_span": "string",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "qwen3_235b_a22b_2507_q5_numeric_suppression_clean_label_verifier_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {"type": "string", "enum": ["accept", "reject"]},
+          "issue_tags": {
+            "type": "array",
+            "items": {"type": "string", "enum": [
+              "contains_digit_or_number", "formula_or_symbol", "unsupported_number", "wrong_metric_binding",
+              "wrong_polarity", "semantic_drift", "unsupported_claim", "too_vague", "too_long", "too_short",
+              "title_rehash", "bad_opening", "not_single_sentence", "awkward", "copies_risky_summary", "none"
+            ]}
+          },
+          "number_policy_ok": {"type": "boolean"},
+          "evidence_span": {"type": "string"},
+          "reason_span": {"type": "string"}
+        },
+        "required": ["decision", "issue_tags", "number_policy_ok", "evidence_span", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You verify clean summary labels for a small mobile research feed model. Return one JSON object only.\n\nAccept only if ALL are true:\n- The candidate summary is faithful to the title and abstract.\n- It is one natural sentence, 10 to 15 whitespace-separated words.\n- It is useful mobile-feed copy, not a title rehash or bland topic label.\n- It contains no digits, decimals, percentages, ranges, exponents, units, equations, Greek symbols, inequality symbols, HTML markup, or formula notation.\n- It does not spell out exact quantities as words.\n- It preserves polarity and direction exactly. Searches, limits, exclusions, and non-detections do not become discoveries.\n- It avoids unsupported entities, mechanisms, datasets, comparisons, causal claims, and metric claims.\n- It does not copy the risky q5 summary's error.\n- It does not open with \"This paper\", \"The paper\", \"The authors\", \"We propose\", or \"In this work\".\n\nReject if:\n- Any exact number or formula-like content remains.\n- The summary is generic, misleading, over-abstracted, too long, too short, awkward, or title-like.\n- The summary uses fluent wording but changes scope, mechanism, entity, comparison, or polarity.\n- The evidence span does not support the summary.\n\nEvidence span\n- For accept, quote a short source phrase from the abstract supporting the candidate.\n- For reject, evidence_span may be empty unless a short source phrase makes the error clear.\n\nUse issue tag none only for accepted rows with no remaining issue. Set number_policy_ok=false whenever any number/formula policy is violated.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nRISKY Q5 SUMMARY, FOR WARNING ONLY:\n{bad_summary}\n\nOPTIONAL BASELINE SUMMARY, FOR CONTEXT ONLY:\n{pre_dpo_summary}\n\nRISK TAGS:\n{failure_tags}\n\nSELECTION REASON:\n{short_reason}\n\nWRITER DECISION:\n{writer_decision}\n\nWRITER ISSUE TAGS:\n{writer_issue_tags}\n\nWRITER NUMBER POLICY:\n{number_policy}\n\nWRITER EVIDENCE SPAN:\n{writer_evidence_span}\n\nCANDIDATE CLEAN SUMMARY:\n{repair_summary}\n\nWRITER REASON:\n{writer_reason_span}"
+}

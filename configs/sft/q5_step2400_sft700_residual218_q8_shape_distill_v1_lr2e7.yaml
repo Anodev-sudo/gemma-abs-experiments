@@ -1,0 +1,32 @@
+model: "google/gemma-3-270m-it"
+model_path: null
+hf_home: "hf_bucket/experiments/mlx_lora/.hf-home"
+model_dtype: "float32"
+
+# Q8-shape no-digit distillation pass from promoted q5 checkpoint 218.
+# Uses Kimi+DeepSeek writer labels that pass Qwen verification and preserve
+# q8's concrete semantic hook while removing fragile exact numbers and q5
+# semantic-fog phrasing.
+converted_adapter_dir: "hf_bucket/experiments/sft/q5_step2400_sft700_hard77_burnin150_residual_repair_v1_lr2e7/checkpoint-218"
+dataset_path: "hf_bucket/experiments/sft/q5_step2400_sft700_residual218_q8_shape_distill_v1_lr2e7/dataset_259q8shape_x2_193residual_77hard_200cleanself_v1/train.jsonl"
+output_dir: "hf_bucket/experiments/sft/q5_step2400_sft700_residual218_q8_shape_distill_v1_lr2e7"
+
+seed: 20260516
+
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+num_train_epochs: 1
+learning_rate: 2.0e-7
+warmup_ratio: 0.05
+max_seq_length: 1088
+weighted_loss_normalization: "label_count"
+gradient_checkpointing: false
+
+logging_steps: 5
+save_strategy: "steps"
+save_steps: 25
+save_total_limit: 12
+max_grad_norm: 1.0
+dataloader_num_workers: 0
+report_to: []
+copy_config_into_output: true

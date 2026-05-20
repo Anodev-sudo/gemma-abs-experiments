@@ -1,0 +1,94 @@
+{
+  "prompt_version": "kimi_k2_6_q5_sft700_targeted_repair_v1",
+  "role": "q5_sft700_targeted_repair_rewriter",
+  "teacher_input": "title_abstract_checkpoint700_failure_triage",
+  "student_target": "targeted_sft_repair",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "number_policy": "kept_supported_number|removed_risky_number|no_number_needed|dropped",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_sft700_targeted_repair_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "rewrite",
+              "drop"
+            ]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "wrong_number",
+                "unsupported_number",
+                "metric_role_flip",
+                "decimal_corruption",
+                "numeric_error",
+                "misses_point",
+                "unsupported_entity",
+                "unsupported_mechanism",
+                "mechanism_flip",
+                "generic_smoothing",
+                "repetition",
+                "grammar",
+                "too_long",
+                "too_short",
+                "title_rehash",
+                "style_drift",
+                "none"
+              ]
+            }
+          },
+          "number_policy": {
+            "type": "string",
+            "enum": [
+              "kept_supported_number",
+              "removed_risky_number",
+              "no_number_needed",
+              "dropped"
+            ]
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "word_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "number_policy",
+          "evidence_span",
+          "summary",
+          "word_count",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You repair paper-summary training targets for a small mobile research feed model. Return one JSON object only.\n\nGoal\n- Write a faithful, useful one-sentence summary from the title and abstract.\n- Repair the checkpoint-700 failure without copying its bad claim.\n- The title and abstract are the only authority. The bad summaries are warnings, not sources.\n\nStyle target\n- One natural sentence.\n- Aim for 10 to 12 words. Hard maximum 15 words. Prefer a shorter safe sentence over a detailed long sentence. If a draft exceeds 15 words, remove adjectives, secondary clauses, and extra method names until it fits.\n- End with exactly one period.\n- No other periods, question marks, or exclamation marks inside the summary.\n- No semicolons.\n- No openings like \"This paper\", \"The paper\", \"The authors\", \"We propose\", \"In this work\", or \"In this paper\".\n- Avoid title rehash. Add the paper's contribution, finding, or reason to open.\n- Avoid formulas and dense notation when plain words work. Do not use dollar signs or HTML markup.\n\nCritical numeric policy\n- Do NOT solve numeric errors by blindly stripping all numbers.\n- If a number is central and directly supported, keep one short numeric phrase with the exact object, metric, condition, and direction from the abstract.\n- Preserve decimals, units, signs, ranges, and approximate markers. Never convert 1.618 into 1618 or 2.2 million into 22 million.\n- If the abstract says a metric is higher, lower, reduced, smaller, faster, or more costly, preserve that direction exactly.\n- If a number is risky or would make the sentence too long, omit it and summarize the supported takeaway without inventing a replacement number.\n- Never introduce a number, percentage, unit, acronym expansion, named entity, mechanism, comparison, or causal direction that is not directly supported by the abstract.\n\nSemantic repair policy\n- Prefer conservative precision over fluent-sounding generalization.\n- Do not turn a theorem condition into a broader claim.\n- Do not invent mechanisms, datasets, methods, applications, or causal effects.\n- Preserve negation, uncertainty, limitations, and scope.\n- If the abstract is highly technical, use a modest supported object plus contribution rather than pretending to explain everything.\n- If the safe summary would be too vague, too title-like, or too notation-heavy, choose drop.\n\nDecision policy\n- rewrite: strongly preferred. Use whenever any faithful, useful 10-to-15-word summary is available, even if it must be conservative.\n- drop: use only when the abstract is too vague or technical to support even a conservative non-title-like summary.\n\nOutput rules\n- For rewrite, summary is the final repaired sentence.\n- evidence_span must be a short phrase from the abstract supporting the summary.\n- number_policy must reflect the final summary: kept_supported_number, removed_risky_number, or no_number_needed.\n- word_count must equal whitespace-separated words in summary. Count carefully after writing; contractions count as one word.\n- For drop, summary and evidence_span are empty, word_count is 0, number_policy is dropped.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCHECKPOINT-700 BAD SUMMARY TO REPAIR:\n{bad_summary}\n\nPRE-DPO SUMMARY FOR CONTEXT ONLY:\n{pre_dpo_summary}\n\nTRIAGE DECISION:\n{triage_decision}\n\nTRIAGE SEVERITY:\n{triage_severity}\n\nTRIAGE FAILURE TAGS:\n{failure_tags}\n\nTRIAGE REASON:\n{short_reason}"
+}

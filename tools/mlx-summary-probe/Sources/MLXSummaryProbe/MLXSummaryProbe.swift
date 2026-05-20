@@ -2,6 +2,7 @@ import Foundation
 import MLXHuggingFace
 import MLXLLM
 import MLXLMCommon
+import MLX
 import Tokenizers
 
 private let defaultModelDir = "hf_bucket/experiments/litert_exports/q4_hardening_combined_v1_lr_1e_6_300/q4_fused_mlx"
@@ -10,6 +11,7 @@ private let defaultInputMode = "title_abstract"
 
 private struct ProbeArguments {
     var modelDir = defaultModelDir
+    var adapterDir: String?
     var promptSpec = defaultPromptSpec
     var inputMode = defaultInputMode
     var example: ExampleFixture?
@@ -17,6 +19,7 @@ private struct ProbeArguments {
     var abstract: String?
     var inputJSONL: String?
     var outputJSONL: String?
+    var traceJSONL: String?
     var limit: Int?
     var skipCount = 0
     var warmupCount = 0
@@ -155,6 +158,95 @@ private struct BatchResult: Encodable {
     }
 }
 
+private struct TraceMessage: Encodable {
+    let role: String
+    let content: String
+}
+
+private struct GenerationSettings: Encodable {
+    let maxTokens: Int
+    let temperature: Float
+    let topP: Float
+    let topK: Int
+
+    enum CodingKeys: String, CodingKey {
+        case maxTokens = "max_tokens"
+        case temperature
+        case topP = "top_p"
+        case topK = "top_k"
+    }
+}
+
+private struct TraceOutputRow: Encodable {
+    let ok: Bool
+    let paperID: String
+    let evalID: String?
+    let title: String
+    let promptVersion: String?
+    let inputMode: String
+    let systemPrompt: String?
+    let userPrompt: String?
+    let messages: [TraceMessage]
+    let promptTokenIds: [Int]
+    let promptTokenCount: Int
+    let generatedTokenIds: [Int]
+    let decodedOutput: String?
+    let normalizedOutput: String?
+    let finishReason: String?
+    let promptTimeSeconds: Double?
+    let generationTimeSeconds: Double?
+    let generationTokenCount: Int?
+    let generationSettings: GenerationSettings
+    let error: String?
+
+    enum CodingKeys: String, CodingKey {
+        case ok
+        case paperID = "paper_id"
+        case evalID = "eval_id"
+        case title
+        case promptVersion = "prompt_version"
+        case inputMode = "input_mode"
+        case systemPrompt = "system_prompt"
+        case userPrompt = "user_prompt"
+        case messages
+        case promptTokenIds = "prompt_token_ids"
+        case promptTokenCount = "prompt_token_count"
+        case generatedTokenIds = "generated_token_ids"
+        case decodedOutput = "decoded_output"
+        case normalizedOutput = "normalized_output"
+        case finishReason = "finish_reason"
+        case promptTimeSeconds = "prompt_time_seconds"
+        case generationTimeSeconds = "generation_time_seconds"
+        case generationTokenCount = "generation_token_count"
+        case generationSettings = "generation_settings"
+        case error
+    }
+}
+
+private struct TraceBatchResult: Encodable {
+    let ok: Bool
+    let modelDir: String
+    let promptSpec: String
+    let promptVersion: String?
+    let inputMode: String
+    let traceJSONL: String
+    let rowCount: Int
+    let loadTimeMs: Int?
+    let error: String?
+
+    enum CodingKeys: String, CodingKey {
+        case ok
+        case modelDir = "model_dir"
+        case promptSpec = "prompt_spec"
+        case promptVersion = "prompt_version"
+        case inputMode = "input_mode"
+        case traceJSONL = "trace_jsonl"
+        case rowCount = "row_count"
+        case loadTimeMs = "load_time_ms"
+        case error
+    }
+}
+
 @main
 private enum MLXSummaryProbe {
     static func main() async {
@@ -164,6 +256,12 @@ private enum MLXSummaryProbe {
         } catch {
             fputs("\(error.localizedDescription)\n\n\(usage())\n", stderr)
             Foundation.exit(2)
+        }
+
+        if arguments.traceJSONL != nil {
+            let result = await runTraceProbe(arguments)
+            printTraceResult(result, asJSON: arguments.json)
+            Foundation.exit(result.ok ? 0 : 1)
         }
 
         if arguments.inputJSONL != nil {
@@ -196,6 +294,9 @@ private func parseArguments(_ rawArguments: [String]) throws -> ProbeArguments {
         case "--model-dir":
             arguments.modelDir = try value(after: argument)
             index += 2
+        case "--adapter-dir":
+            arguments.adapterDir = try value(after: argument)
+            index += 2
         case "--prompt-spec":
             arguments.promptSpec = try value(after: argument)
             index += 2
@@ -220,6 +321,9 @@ private func parseArguments(_ rawArguments: [String]) throws -> ProbeArguments {
             index += 2
         case "--output-jsonl":
             arguments.outputJSONL = try value(after: argument)
+            index += 2
+        case "--trace-jsonl":
+            arguments.traceJSONL = try value(after: argument)
             index += 2
         case "--limit":
             arguments.limit = try parsePositiveInt(try value(after: argument), flag: argument)
@@ -258,6 +362,237 @@ private func parseArguments(_ rawArguments: [String]) throws -> ProbeArguments {
     }
 
     return arguments
+}
+
+private func runTraceProbe(_ arguments: ProbeArguments) async -> TraceBatchResult {
+    let modelURL = resolvePath(arguments.modelDir)
+    let promptSpecURL = resolvePath(arguments.promptSpec)
+    let traceJSONL = arguments.traceJSONL ?? ""
+    let traceURL = resolvePath(traceJSONL)
+    var promptVersion: String?
+    var outputHandle: FileHandle?
+    var rowCount = 0
+
+    do {
+        guard FileManager.default.fileExists(atPath: modelURL.path(percentEncoded: false)) else {
+            throw ProbeError.runtime("Model directory not found: \(arguments.modelDir)")
+        }
+        guard FileManager.default.fileExists(atPath: promptSpecURL.path(percentEncoded: false)) else {
+            throw ProbeError.runtime("Prompt spec not found: \(arguments.promptSpec)")
+        }
+
+        let promptSpec = try loadPromptSpec(from: promptSpecURL)
+        promptVersion = promptSpec.promptVersion
+        let rows: [BatchInputRow]
+        if let inputJSONL = arguments.inputJSONL {
+            let inputURL = resolvePath(inputJSONL)
+            guard FileManager.default.fileExists(atPath: inputURL.path(percentEncoded: false)) else {
+                throw ProbeError.runtime("Input JSONL not found: \(inputJSONL)")
+            }
+            rows = try loadBatchRows(
+                from: inputURL,
+                skip: arguments.skipCount,
+                limit: arguments.limit
+            )
+        } else {
+            let title = arguments.title ?? ""
+            let abstract = arguments.abstract ?? ""
+            rows = [
+                BatchInputRow(
+                    paperID: "single",
+                    title: title,
+                    abstract: abstract,
+                    evalID: nil
+                )
+            ]
+        }
+
+        let directory = traceURL.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: traceURL.path(percentEncoded: false), contents: nil)
+        outputHandle = try FileHandle(forWritingTo: traceURL)
+        defer {
+            try? outputHandle?.close()
+        }
+
+        let settings = GenerationSettings(maxTokens: 64, temperature: 0, topP: 1, topK: 1)
+        let parameters = GenerateParameters(
+            maxTokens: settings.maxTokens,
+            temperature: settings.temperature,
+            topP: settings.topP,
+            topK: settings.topK
+        )
+        let loadStart = ContinuousClock.now
+        let model = try await LLMModelFactory.shared.loadContainer(
+            from: modelURL,
+            using: #huggingFaceTokenizerLoader()
+        )
+        try await loadAdapterIfNeeded(model: model, adapterDir: arguments.adapterDir)
+        let loadTimeMs = milliseconds(from: loadStart)
+        let systemPrompt = promptSpec.systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        for row in rows {
+            let traceRow: TraceOutputRow
+            do {
+                let userPrompt = try renderUserPrompt(
+                    promptSpec: promptSpec,
+                    inputMode: arguments.inputMode,
+                    title: row.title,
+                    abstract: row.abstract
+                )
+                traceRow = try await traceGeneration(
+                    model: model,
+                    row: row,
+                    promptVersion: promptVersion,
+                    inputMode: arguments.inputMode,
+                    systemPrompt: systemPrompt,
+                    userPrompt: userPrompt,
+                    parameters: parameters,
+                    settings: settings
+                )
+            } catch {
+                traceRow = TraceOutputRow(
+                    ok: false,
+                    paperID: row.paperID,
+                    evalID: row.evalID,
+                    title: row.title,
+                    promptVersion: promptVersion,
+                    inputMode: arguments.inputMode,
+                    systemPrompt: nil,
+                    userPrompt: nil,
+                    messages: [],
+                    promptTokenIds: [],
+                    promptTokenCount: 0,
+                    generatedTokenIds: [],
+                    decodedOutput: nil,
+                    normalizedOutput: nil,
+                    finishReason: nil,
+                    promptTimeSeconds: nil,
+                    generationTimeSeconds: nil,
+                    generationTokenCount: nil,
+                    generationSettings: settings,
+                    error: error.localizedDescription
+                )
+            }
+            rowCount += 1
+            try writeTraceOutput(traceRow, to: outputHandle)
+            if rowCount % 10 == 0 {
+                fputs("[mlx-summary-probe:trace] traced \(rowCount)/\(rows.count) rows\n", stderr)
+            }
+        }
+
+        return TraceBatchResult(
+            ok: true,
+            modelDir: arguments.modelDir,
+            promptSpec: arguments.promptSpec,
+            promptVersion: promptVersion,
+            inputMode: arguments.inputMode,
+            traceJSONL: traceJSONL,
+            rowCount: rowCount,
+            loadTimeMs: loadTimeMs,
+            error: nil
+        )
+    } catch {
+        return TraceBatchResult(
+            ok: false,
+            modelDir: arguments.modelDir,
+            promptSpec: arguments.promptSpec,
+            promptVersion: promptVersion,
+            inputMode: arguments.inputMode,
+            traceJSONL: traceJSONL,
+            rowCount: rowCount,
+            loadTimeMs: nil,
+            error: error.localizedDescription
+        )
+    }
+}
+
+private func traceGeneration(
+    model: ModelContainer,
+    row: BatchInputRow,
+    promptVersion: String?,
+    inputMode: String,
+    systemPrompt: String,
+    userPrompt: String,
+    parameters: GenerateParameters,
+    settings: GenerationSettings
+) async throws -> TraceOutputRow {
+    let messages = [
+        Chat.Message.system(systemPrompt),
+        Chat.Message.user(userPrompt),
+    ]
+    let traceMessages = [
+        TraceMessage(role: "system", content: systemPrompt),
+        TraceMessage(role: "user", content: userPrompt),
+    ]
+    let input = try await model.prepare(input: UserInput(chat: messages))
+    let promptTokenIds = input.text.tokens.flattened().asArray(Int.self)
+    let stream = try await model.perform(nonSendable: input) { context, input in
+        try generateTokens(
+            input: input,
+            parameters: parameters,
+            context: context,
+            includeStopToken: true
+        )
+    }
+
+    var generatedTokenIds: [Int] = []
+    var completionInfo: GenerateCompletionInfo?
+    for await item in stream {
+        switch item {
+        case .token(let token):
+            generatedTokenIds.append(token)
+        case .info(let info):
+            completionInfo = info
+        }
+    }
+    let decodedTokenIds = trimStopToken(from: generatedTokenIds)
+    let decodedOutput = await model.decode(tokenIds: decodedTokenIds)
+    let normalizedOutput = normalizeWhitespace(decodedOutput)
+
+    return TraceOutputRow(
+        ok: !normalizedOutput.isEmpty,
+        paperID: row.paperID,
+        evalID: row.evalID,
+        title: row.title,
+        promptVersion: promptVersion,
+        inputMode: inputMode,
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
+        messages: traceMessages,
+        promptTokenIds: promptTokenIds,
+        promptTokenCount: promptTokenIds.count,
+        generatedTokenIds: generatedTokenIds,
+        decodedOutput: decodedOutput,
+        normalizedOutput: normalizedOutput,
+        finishReason: completionInfo.map { stopReasonName($0.stopReason) },
+        promptTimeSeconds: completionInfo?.promptTime,
+        generationTimeSeconds: completionInfo?.generateTime,
+        generationTokenCount: completionInfo?.generationTokenCount,
+        generationSettings: settings,
+        error: normalizedOutput.isEmpty ? "Model returned an empty response." : nil
+    )
+}
+
+private func trimStopToken(from tokenIds: [Int]) -> [Int] {
+    guard let last = tokenIds.last else {
+        return tokenIds
+    }
+    if last == 1 || last == 106 {
+        return Array(tokenIds.dropLast())
+    }
+    return tokenIds
+}
+
+private func stopReasonName(_ reason: GenerateStopReason) -> String {
+    switch reason {
+    case .stop:
+        "stop"
+    case .length:
+        "length"
+    case .cancelled:
+        "cancelled"
+    }
 }
 
 private func parseNonNegativeInt(_ rawValue: String, flag: String) throws -> Int {
@@ -310,6 +645,7 @@ private func runProbe(_ arguments: ProbeArguments) async -> ProbeResult {
             from: modelURL,
             using: #huggingFaceTokenizerLoader()
         )
+        try await loadAdapterIfNeeded(model: model, adapterDir: arguments.adapterDir)
         let loadTimeMs = milliseconds(from: loadStart)
 
         for _ in 0..<arguments.warmupCount {
@@ -423,6 +759,7 @@ private func runBatchProbe(_ arguments: ProbeArguments) async -> BatchResult {
             from: modelURL,
             using: #huggingFaceTokenizerLoader()
         )
+        try await loadAdapterIfNeeded(model: model, adapterDir: arguments.adapterDir)
         let loadTimeMs = milliseconds(from: loadStart)
 
         for row in rows {
@@ -536,6 +873,17 @@ private func writeBatchOutput(_ row: BatchOutputRow, to handle: FileHandle?) thr
     handle.write(Data("\n".utf8))
 }
 
+private func writeTraceOutput(_ row: TraceOutputRow, to handle: FileHandle?) throws {
+    guard let handle else {
+        return
+    }
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+    let data = try encoder.encode(row)
+    handle.write(data)
+    handle.write(Data("\n".utf8))
+}
+
 private func printJSONLine<T: Encodable>(_ value: T) {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
@@ -548,6 +896,53 @@ private func printJSONLine<T: Encodable>(_ value: T) {
 private func loadPromptSpec(from url: URL) throws -> PromptSpec {
     let data = try Data(contentsOf: url)
     return try JSONDecoder().decode(PromptSpec.self, from: data)
+}
+
+private func loadAdapterIfNeeded(model: ModelContainer, adapterDir: String?) async throws {
+    guard let adapterDir,
+          adapterDir.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+        return
+    }
+
+    let adapterURL = resolvePath(adapterDir)
+    guard FileManager.default.fileExists(atPath: adapterURL.path(percentEncoded: false)) else {
+        throw ProbeError.runtime("Adapter directory not found: \(adapterDir)")
+    }
+
+    try await model.perform { context in
+        let adapter = try LoRAContainer.from(directory: adapterURL)
+        try context.model.load(adapter: adapter)
+    }
+}
+
+private func printTraceResult(_ result: TraceBatchResult, asJSON: Bool) {
+    if asJSON {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        if let data = try? encoder.encode(result),
+           let text = String(data: data, encoding: .utf8) {
+            print(text)
+        } else {
+            print("{\"ok\":false,\"error\":\"Failed to encode trace result.\"}")
+        }
+        return
+    }
+
+    if result.ok {
+        print("ok: true")
+        print("model_dir: \(result.modelDir)")
+        if let promptVersion = result.promptVersion {
+            print("prompt_version: \(promptVersion)")
+        }
+        if let loadTimeMs = result.loadTimeMs {
+            print("load_time_ms: \(loadTimeMs)")
+        }
+        print("row_count: \(result.rowCount)")
+        print("trace_jsonl: \(result.traceJSONL)")
+    } else {
+        print("ok: false")
+        print("error: \(result.error ?? "Unknown error.")")
+    }
 }
 
 private func printBatchResult(_ result: BatchResult, asJSON: Bool) {
@@ -665,11 +1060,13 @@ private func usage() -> String {
 
     Options:
       --model-dir <path>      Local MLX model directory.
+      --adapter-dir <path>    Optional MLX LoRA adapter directory.
       --prompt-spec <path>    Prompt spec JSON.
       --input-mode <mode>     Prompt input mode. Default: title_abstract.
       --example cablecar      Run the CAbLECAR deployment-failure fixture.
       --input-jsonl <path>    Generate for JSONL rows with paper_id, title, and abstract.
       --output-jsonl <path>   Write batch generation rows to this JSONL path.
+      --trace-jsonl <path>    Write raw prompt/generated token traces to this JSONL path.
       --limit <count>         Limit batch generation to the first count rows.
       --skip <count>          Skip count rows before batch generation.
       --warmup <count>        Warmup generations after load. Default: 0.

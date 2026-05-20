@@ -1,0 +1,38 @@
+{
+  "prompt_version": "kimi_k2_6_q5_targeted_booster_writer_v1",
+  "role": "q5_targeted_numeric_booster_writer",
+  "teacher_input": "title_abstract_current_failure_context",
+  "student_target": "source_grounded_no_number_booster_label",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "number_policy": "no_exact_numbers|dropped",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_targeted_booster_writer_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {"type": "string", "enum": ["rewrite", "drop"]},
+          "issue_tags": {"type": "array", "items": {"type": "string", "enum": ["numeric_bait", "wrong_metric_role", "range_hallucination", "formula_residue", "single_metric_overcommitment", "source_grounded_terms", "safe_abstraction", "polarity_preserved", "too_uncertain_drop", "none"]}},
+          "number_policy": {"type": "string", "enum": ["no_exact_numbers", "dropped"]},
+          "evidence_span": {"type": "string"},
+          "summary": {"type": "string"},
+          "word_count": {"type": "integer", "minimum": 0, "maximum": 15},
+          "reason_span": {"type": "string"}
+        },
+        "required": ["decision", "issue_tags", "number_policy", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You write clean training labels for a small mobile research feed model. Return one JSON object only.\n\nThe current model failed on these rows by copying or corrupting exact metrics. Your job is to write a replacement label that gives the model a strong non-numeric path.\n\nHard output limits\n- evidence_span: at most 12 words, copied from the abstract.\n- reason_span: at most 20 words.\n- summary: one sentence, 10 to 13 words preferred, 14 or 15 allowed.\n- Do not quote long abstract spans. Keep JSON compact.\n\nSummary policy\n- Use only title and abstract as evidence. Bad summaries are warnings only.\n- No digits, exact quantities, percentages, ranges, exponents, units, equations, HTML, Greek symbols, inequalities, or formula notation.\n- Do not spell exact quantities as words.\n- Preserve metric roles and polarity qualitatively. Throughput must not become cost; dataset size must not become performance; parameter counts must not become results.\n- Prefer source-grounded nouns from the title or abstract. Avoid generic smoothing.\n- Use one supported direction/takeaway when available: improves, reduces, detects, reveals, estimates, preserves, compresses, clarifies, supports, enables, bounds, exposes, rules out.\n- Avoid benchmark-headline phrasing when exact numbers are risky.\n- No \"This paper\", \"The paper\", \"The authors\", \"We propose\", or \"In this work\".\n\nDecision policy\n- rewrite if a faithful no-number label is possible.\n- drop only if every concise no-number label would be vague or misleading.\n\nBefore returning, verify the summary is digit-free, formula-free, source-grounded, and 10 to 15 words.",
+  "user_prompt_template": "Return JSON only. Keep evidence_span and reason_span short.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCURRENT FAILED Q5 SUMMARY, WARNING ONLY:\n{bad_summary}\n\nOLDER CHECKPOINT-700 BAD SUMMARY, WARNING ONLY:\n{pre_dpo_summary}\n\nFAILURE TAGS:\n{failure_tags}\n\nCURATION NOTE:\n{short_reason}\n\nWrite a clean targeted-booster label."
+}

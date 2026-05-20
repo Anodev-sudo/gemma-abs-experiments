@@ -49,11 +49,25 @@ Current configs:
   - Student input: `title_abstract`
   - Goal: harden the q4 lineage against severe numeric, polarity, entity, and
     notation failures while keeping the adapter small and fast
+- `gemma_3_270m_it_title_abstract_10746_q5_current_lora_first_phase_naive_v1.yaml`
+  - Base model: raw MLX q4 export of `google/gemma-3-270m-it`
+  - Parent checkpoint: q4 hardening combined `0000300`, used as the current
+    LoRA seed for the q5 deployment candidate
+  - Dataset: full `10,746`-row title+abstract release
+  - Student input: `title_abstract`
+  - Goal: run the first naive corrective phase for the q5-target LoRA lineage
+    before mining q5-specific failures against promoted q8
 
 Current promoted 270M title+abstract adapter:
 
 ```text
-hf_bucket/experiments/mlx_lora/gemma_3_270m_it_title_abstract_10746_q4_hardening_combined_v1_lr_1e_6/adapters/0000300_adapters.safetensors
+hf_bucket/experiments/mlx_lora/gemma_3_270m_it_title_abstract_10746_faithfulness_overlay_1400_v2/adapters/0000600_adapters.safetensors
+```
+
+Current promoted standalone model:
+
+```text
+hf_bucket/experiments/mlx_lora/quantized_models/faith_overlay_1400_v2_final_600/q8_g64
 ```
 
 Promotion pointer:
@@ -64,17 +78,11 @@ hf_bucket/experiments/mlx_lora/promoted/gemma_3_270m_it_title_abstract_current.j
 
 Promotion basis:
 
-- `q4_hardening_combined_v1_lr_1e_6_300` uses the raw MLX q4 base
-  `quantized_models/google_gemma_3_270m_it/q4_g64` plus the selected LoRA
-  checkpoint above.
-- On the fixed q4-hardening tripwire, q4 wins were `56` vs `30` for q8 and
-  q4-only severe failures dropped from the prior hardening result of `12` to
-  `4`.
-- On fresh blinded 100-paper reviews, q4 scored `54` vs `37` on the first run
-  and `44` vs `51` on the repeat. Severe flags stayed low: q4-only severe was
-  `3` on the first fresh set and `5` on the repeat.
-- The q8 `faith_overlay_1400_v2_final_600` details are retained in the promoted
-  pointer under `previous_promoted` for fallback context.
+- `faith_overlay_1400_v2_final_600` is restored as the current promoted q8
+  standalone export after q4 runtime/export probes showed deployment-path
+  behavior shifts.
+- The q4 hardening candidate is retained in the promoted pointer under
+  `previous_promoted` for experiment history and fallback context.
 
 Why this setup:
 

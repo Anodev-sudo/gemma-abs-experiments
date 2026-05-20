@@ -1,0 +1,44 @@
+# MLX LoRA config for a clean-slate adapter targeting llama.cpp Q5_K_M eval.
+#
+# This is intentionally a training config, not a runtime declaration. The
+# deployment/runtime target is GGUF Q5_K_M through llama.cpp; checkpoint
+# selection should be based on llama.cpp generations after adapter conversion.
+
+model: "google/gemma-3-270m-it"
+train: true
+fine_tune_type: lora
+optimizer: adamw
+
+data: "hf_dataset/releases/recent_3y_balanced_10746_v1/mlx_lora/title_abstract_chat_gemma_270m_it_abstract_to_glanceable_summary_v1"
+
+seed: 20260508
+num_layers: -1
+
+batch_size: 4
+iters: 3600
+val_batches: -1
+
+learning_rate: 1.5e-5
+steps_per_report: 10
+steps_per_eval: 200
+grad_accumulation_steps: 2
+
+resume_adapter_file: null
+
+adapter_path: "hf_bucket/experiments/mlx_lora/runtime_shift/llama_cpp_q5_clean_slate_broad_v1_20260508/mlx_training/adapters"
+save_every: 200
+test: true
+test_batches: -1
+max_seq_length: 1024
+
+grad_checkpoint: true
+
+lora_parameters:
+  keys:
+    - "self_attn.q_proj"
+    - "self_attn.k_proj"
+    - "self_attn.v_proj"
+    - "self_attn.o_proj"
+  rank: 16
+  scale: 10.0
+  dropout: 0.0

@@ -1,0 +1,38 @@
+{
+  "prompt_version": "kimi_k2_6_q5_digit_residue_fix_v1",
+  "role": "q5_digit_residue_fix_writer",
+  "teacher_input": "title_abstract_digit_bearing_candidate",
+  "student_target": "clean_digit_free_rewrite",
+  "response_schema": {
+    "decision": "rewrite",
+    "issue_tags": "string[]",
+    "number_policy": "no_exact_numbers",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_digit_residue_fix_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {"type": "string", "enum": ["rewrite"]},
+          "issue_tags": {"type": "array", "items": {"type": "string", "enum": ["digit_residue", "removed_risky_number", "safe_abstraction", "stress_case", "none"]}},
+          "number_policy": {"type": "string", "enum": ["no_exact_numbers"]},
+          "evidence_span": {"type": "string"},
+          "summary": {"type": "string"},
+          "word_count": {"type": "integer", "minimum": 10, "maximum": 15},
+          "reason_span": {"type": "string"}
+        },
+        "required": ["decision", "issue_tags", "number_policy", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You fix one otherwise-good training label that contains digit residue. Return one JSON object only. Always return decision=\"rewrite\" and number_policy=\"no_exact_numbers\".\n\nGoal\n- Preserve the candidate's supported meaning.\n- Remove every digit and exact numeric expression.\n- Write one faithful mobile-feed sentence from the title and abstract.\n\nHard constraints\n- One sentence, 10 to 15 whitespace-separated words.\n- No digits anywhere.\n- No exact quantities, percentages, wavelengths, units, ranges, formulas, equations, HTML, or mathematical notation.\n- Do not spell exact quantities as words.\n- Replace digit-bearing acronyms or shorthand with plain words when possible.\n- End with exactly one period.\n- No semicolon.\n- No \"This paper\", \"The paper\", \"The authors\", \"We propose\", or \"In this work\".\n\nFor the optics stress case\n- Replace \"3D\" with \"three-dimensional\" if useful.\n- Keep the qualitative contribution: nanoprinted microfibers enable broadband fiber-to-chip or fiber-to-waveguide coupling.\n- Do not mention exact efficiency, wavelength, or bandwidth.\n\nCount words before returning. If the summary is under 10 or over 15 words, rewrite it until it fits.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nDIGIT-BEARING CANDIDATE TO FIX:\n{bad_summary}\n\nCONTEXT SUMMARY, FOR WARNING ONLY:\n{pre_dpo_summary}\n\nFIX NOTE:\n{short_reason}\n\nRewrite the candidate as a clean digit-free label."
+}

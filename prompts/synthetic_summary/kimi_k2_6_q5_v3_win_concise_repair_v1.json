@@ -1,0 +1,62 @@
+{
+  "prompt_version": "kimi_k2_6_q5_v3_win_concise_repair_v1",
+  "role": "q5_v3_win_concise_repair_writer",
+  "teacher_input": "title_abstract_current_summary_v3_summary",
+  "student_target": "concise_faithful_repair",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "number_policy": "kept_supported_number|removed_risky_number|no_number_needed|dropped",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_v3_win_concise_repair_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {"type": "string", "enum": ["rewrite", "drop"]},
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "wrong_number",
+                "unsupported_number",
+                "metric_role_flip",
+                "decimal_corruption",
+                "numeric_error",
+                "misses_point",
+                "unsupported_entity",
+                "unsupported_mechanism",
+                "mechanism_flip",
+                "generic_smoothing",
+                "repetition",
+                "grammar",
+                "too_long",
+                "too_short",
+                "title_rehash",
+                "style_drift",
+                "none"
+              ]
+            }
+          },
+          "number_policy": {"type": "string", "enum": ["kept_supported_number", "removed_risky_number", "no_number_needed", "dropped"]},
+          "evidence_span": {"type": "string"},
+          "summary": {"type": "string"},
+          "word_count": {"type": "integer", "minimum": 0, "maximum": 13},
+          "reason_span": {"type": "string"}
+        },
+        "required": ["decision", "issue_tags", "number_policy", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You write concise, faithful paper-summary training targets for a small mobile research feed model. Return one JSON object only.\n\nGoal\n- Produce a new training target from the title and abstract.\n- The current model summary and v3 summary are diagnostic examples only, not authorities.\n- Keep the semantic/numeric improvement if v3 is better, but compress it into a concise target.\n\nStyle target\n- One natural sentence.\n- Aim for 10 to 12 words. Hard maximum 13 words.\n- End with exactly one period.\n- No other periods, question marks, or exclamation marks inside the summary.\n- No semicolons.\n- No openings like \"This paper\", \"The paper\", \"The authors\", \"We propose\", \"In this work\", or \"In this paper\".\n- Avoid title rehash. Add the contribution, finding, or reason to open.\n- Avoid formulas and dense notation when plain words work. Do not use dollar signs or HTML markup.\n\nCritical numeric policy\n- Do NOT solve numeric errors by blindly stripping all numbers.\n- If a number is central and directly supported, keep one short numeric phrase with the exact object, metric, condition, and direction from the abstract.\n- Preserve decimals, units, signs, ranges, and approximate markers. Never convert 1.618 into 1618 or 2.2 million into 22 million.\n- If the abstract says a metric is higher, lower, reduced, smaller, faster, or more costly, preserve that direction exactly.\n- If a number is risky or would make the sentence too long, omit it and summarize the supported takeaway without inventing a replacement number.\n- Never introduce a number, percentage, unit, acronym expansion, named entity, mechanism, comparison, or causal direction that is not directly supported by the abstract.\n\nSemantic repair policy\n- Prefer conservative precision over fluent-sounding generalization.\n- Preserve the paper's main object, result, method, condition, and scope.\n- Do not turn a theorem condition into a broader claim.\n- Do not invent mechanisms, datasets, methods, applications, or causal effects.\n- If v3 is more specific but overlong, keep only the central specific improvement.\n- If both supplied summaries are flawed, write a fresh faithful summary from the abstract.\n\nDecision policy\n- rewrite: strongly preferred whenever a faithful useful 10-to-13-word summary is available.\n- drop: use only when no safe concise non-title-like summary can be written.\n\nOutput rules\n- For rewrite, summary is the final repaired sentence.\n- evidence_span must be a short phrase from the abstract supporting the summary.\n- number_policy must reflect the final summary: kept_supported_number, removed_risky_number, or no_number_needed.\n- word_count must equal whitespace-separated words in summary. Count carefully.\n- For drop, summary and evidence_span are empty, word_count is 0, number_policy is dropped.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCURRENT CHECKPOINT-700 SUMMARY:\n{current_summary}\n\nV3 CHECKPOINT-110 SUMMARY THAT WON BLIND REVIEW:\n{v3_summary}\n\nBLIND REVIEW REASON, FOR DIAGNOSTIC CONTEXT ONLY:\n{blind_short_reason}\n\nREQUEST:\nWrite a fresh Kimi repair target that preserves the best supported improvement while staying 10 to 13 words."
+}

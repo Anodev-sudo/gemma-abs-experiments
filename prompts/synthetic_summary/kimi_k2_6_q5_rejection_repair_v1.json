@@ -1,0 +1,83 @@
+{
+  "prompt_version": "kimi_k2_6_q5_rejection_repair_v1",
+  "role": "q5_rejection_repair_rewriter",
+  "teacher_input": "title_abstract_q5_failure_qwen_rejection_feedback",
+  "student_target": "q5_correction_overlay_repair",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_rejection_repair_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["rewrite", "drop"]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "invented_number",
+                "wrong_number_binding",
+                "numeric_error",
+                "unsupported_number",
+                "unsupported_entity",
+                "unsupported_entity_label",
+                "unsupported_mechanism",
+                "unsupported_causal_claim",
+                "overstrong_claim",
+                "polarity_flip",
+                "polarity_risk",
+                "misses_point",
+                "malformed_repetition",
+                "non_answer",
+                "title_rehash",
+                "too_generic",
+                "copies_q5_failure",
+                "style_drift",
+                "local_filter",
+                "none"
+              ]
+            }
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "word_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "evidence_span",
+          "summary",
+          "word_count",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You repair rejected paper-summary training targets for a small mobile feed model.\nReturn one JSON object only.\n\nGoal\n- Write a faithful one-sentence summary from the title and abstract.\n- Fix both the original q5 bad summary and the first correction rejected by Qwen.\n- Use Qwen's rejection reason as feedback, but the title and abstract remain the only authority.\n\nHard formatting rules for rewrite\n- Summary must be exactly one sentence.\n- Summary must contain 10 to 15 words, inclusive.\n- Aim for 12 words if possible.\n- word_count must equal the actual number of whitespace-separated words in summary.\n- End with exactly one period.\n- Do not put any other period, question mark, or exclamation mark inside the summary.\n- Do not use abbreviations with periods, such as U.S., i.e., e.g., or et al.\n- No semicolons.\n- No formulas or dense notation.\n- No openings like \"This paper\", \"This review\", \"We propose\", \"The authors\", \"In this work\", or \"In this paper\".\n- Do not merely rephrase the title.\n- Do not copy the original q5 summary.\n- Do not copy the rejected first correction unless Qwen rejected only formatting and the content is clearly faithful.\n\nRepair strategy\n- If Qwen says copies_q5_failure, change the claim, object, comparison, or specificity that caused the failure.\n- If Qwen says unsupported_entity, unsupported_mechanism, invented_number, or wrong_number_binding, remove that risky detail or bind it exactly to the abstract.\n- If Qwen says style_drift, keep the supported meaning but make it feed-useful and non-self-referential.\n- If Qwen says too_generic, add one concrete supported object or takeaway from the abstract.\n- Prefer a modest supported summary over an impressive but risky one.\n\nHard faithfulness rules\n- Do not include a number, percentage, unit, named method, acronym, entity label, mechanism, comparison, causal direction, or effect direction unless directly supported by the title or abstract.\n- If a source number is used, attach it to exactly the same object, metric, condition, and direction as in the abstract.\n- If the abstract only says something was studied, do not say it improves, reduces, prevents, explains, or enables something unless that outcome is explicit.\n- Preserve negation, uncertainty, constraints, and conditionality.\n\nDecision policy\n- rewrite: use whenever a faithful, useful, 10-to-15-word summary is available.\n- drop: use if Qwen's objection is correct and a safe concise repair would still be too vague, too title-like, or too notation-heavy.\n\nOutput rules\n- For rewrite, summary is the final repaired sentence and evidence_span is a short source phrase that supports it.\n- For drop, summary and evidence_span must be empty, word_count must be 0, and reason_span briefly explains why.\n- issue_tags should name the failure repaired, or none if only style/format changed.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nORIGINAL Q5 BAD SUMMARY TO AVOID:\n{q5_summary}\n\nQ5 ISSUE TAGS:\n{q5_issue_tags}\n\nBLIND REVIEW NOTE:\n{reviewer_note}\n\nREJECTED FIRST CORRECTION:\n{first_correction_summary}\n\nFIRST CORRECTION ISSUE TAGS:\n{first_correction_issue_tags}\n\nFIRST CORRECTION EVIDENCE SPAN:\n{first_correction_evidence_span}\n\nQWEN REJECTION TAGS:\n{qwen_rejection_tags}\n\nQWEN REJECTION REASON:\n{qwen_rejection_reason_span}\n\nQWEN REJECTION EVIDENCE SPAN:\n{qwen_rejection_evidence_span}"
+}

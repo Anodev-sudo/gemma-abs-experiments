@@ -52,6 +52,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--q8-label", default="q8_promoted")
     parser.add_argument("--q4-label", default="q4_lineage")
+    parser.add_argument(
+        "--candidate-alias",
+        default="q4",
+        help="Short label for the non-q8 side in side maps and README text.",
+    )
+    parser.add_argument("--review-id-prefix", default="q4_hardening")
     parser.add_argument("--packet-size", type=int, default=DEFAULT_PACKET_SIZE)
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--overwrite", action="store_true")
@@ -134,6 +140,8 @@ def build_review_rows(
     *,
     q8_label: str,
     q4_label: str,
+    candidate_alias: str,
+    review_id_prefix: str,
     seed: int,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     rng = random.Random(seed)
@@ -147,7 +155,7 @@ def build_review_rows(
         q8_on_left = rng.choice([True, False])
         left_payload = q8_payload if q8_on_left else q4_payload
         right_payload = q4_payload if q8_on_left else q8_payload
-        review_id = f"q4_hardening:{index:04d}"
+        review_id = f"{review_id_prefix}:{index:04d}"
         review_rows.append(
             {
                 "review_id": review_id,
@@ -175,14 +183,14 @@ def build_review_rows(
             {
                 "review_id": review_id,
                 "paper_id": row["paper_id"],
-                "left_source": "q8" if q8_on_left else "q4",
-                "right_source": "q4" if q8_on_left else "q8",
+                "left_source": "q8" if q8_on_left else candidate_alias,
+                "right_source": candidate_alias if q8_on_left else "q8",
                 "q8_original_side": q8_source,
-                "q4_original_side": q4_source,
+                f"{candidate_alias}_original_side": q4_source,
                 "q8_label": q8_payload["label"],
-                "q4_label": q4_payload["label"],
+                f"{candidate_alias}_label": q4_payload["label"],
                 "q8_summary": q8_payload["summary"],
-                "q4_summary": q4_payload["summary"],
+                f"{candidate_alias}_summary": q4_payload["summary"],
             }
         )
     return review_rows, side_maps
@@ -195,9 +203,10 @@ def packetize(rows: list[dict[str, Any]], packet_size: int) -> list[list[dict[st
 
 
 def build_readme(manifest: dict[str, Any]) -> str:
+    candidate_alias = str(manifest.get("candidate_alias") or "candidate")
     return (
-        "# q4 Hardening Blinded Review Packets\n\n"
-        "Review objective: find q4-only severe failures while preserving blinded q8/q4 labels.\n\n"
+        "# Hardening Blinded Review Packets\n\n"
+        "Review objective: find candidate-only severe failures while preserving blinded side labels.\n\n"
         "Fill each `decisions.tsv` row with:\n"
         "- `winner`: `left`, `right`, `tie`, or `both_bad`\n"
         "- `left_severe` / `right_severe`: `yes` or `no`\n"
@@ -216,7 +225,7 @@ def build_readme(manifest: dict[str, Any]) -> str:
         "- `misses_point`: summary is about a real side detail but misses the main point\n"
         "- `malformed_repetition`: repeated, garbled, truncated, or mechanically malformed text\n"
         "- `non_answer`: does not answer the summary task\n\n"
-        "Do not infer which side is q8 or q4. The side map is intentionally separate.\n\n"
+        f"Do not infer which side is q8 or {candidate_alias}. The side map is intentionally separate.\n\n"
         f"- Review rows: `{manifest['review_rows']}`\n"
         f"- Packet size: `{manifest['packet_size']}`\n"
         f"- Primary packets: `{manifest['primary_packets']}`\n"
@@ -234,6 +243,8 @@ def main() -> None:
         generation_rows,
         q8_label=args.q8_label,
         q4_label=args.q4_label,
+        candidate_alias=args.candidate_alias,
+        review_id_prefix=args.review_id_prefix,
         seed=args.seed,
     )
     packets = packetize(review_rows, args.packet_size)
@@ -255,6 +266,8 @@ def main() -> None:
         "output_dir": str(output_dir),
         "q8_label": args.q8_label,
         "q4_label": args.q4_label,
+        "candidate_alias": args.candidate_alias,
+        "review_id_prefix": args.review_id_prefix,
         "seed": args.seed,
         "packet_size": args.packet_size,
         "review_rows": len(review_rows),

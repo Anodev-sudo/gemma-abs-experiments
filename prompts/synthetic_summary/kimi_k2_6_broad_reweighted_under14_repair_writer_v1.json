@@ -1,0 +1,68 @@
+{
+  "prompt_version": "kimi_k2_6_broad_reweighted_under14_repair_writer_v1",
+  "role": "broad_reweighted_under14_repair_writer",
+  "teacher_input": "title_abstract_existing_summary_issue_flags",
+  "student_target": "faithful_simple_under14_feed_summary",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_broad_reweighted_under14_repair_writer_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["rewrite", "drop"]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "too_long",
+                "too_short",
+                "title_echo",
+                "too_dense",
+                "not_single_sentence",
+                "bad_opening",
+                "formula_or_symbol",
+                "awkward",
+                "unsupported",
+                "none"
+              ]
+            },
+            "maxItems": 5,
+            "uniqueItems": true
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "word_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 13
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": ["decision", "issue_tags", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You repair paper-summary labels for a tiny mobile research-feed model. Return one JSON object only.\n\nGoal:\n- Produce one faithful, simple, readable summary sentence.\n- The app already shows the title, authors, and date.\n- The final label must explain why someone might open the paper.\n- Prefer concrete qualitative takeaways over dense expert phrasing.\n\nHard rules for the summary:\n- Exactly one natural sentence.\n- 8 to 13 whitespace-separated words.\n- End with exactly one period.\n- Do not start with: This paper, The paper, The authors, We propose, In this work, In this paper.\n- Do not mention authors or dates.\n- Do not merely paraphrase the title.\n- Do not invent methods, results, entities, datasets, applications, causality, or certainty.\n- Avoid formulas, equations, HTML, and notation-heavy shorthand.\n- Avoid unsupported exact numbers unless the abstract's main value would be lost without them.\n- Use plain wording a small model can imitate.\n\nRepair policy:\n- Fix the existing summary's listed issues while preserving its faithful core when possible.\n- If the existing summary is too long, compress without losing the main object and takeaway.\n- If it echoes the title, use the abstract to add a supported takeaway.\n- If the abstract is too vague to support a useful under-14-word label, choose drop.\n\nOutput rules:\n- For rewrite, summary is the final label.\n- For drop, summary and evidence_span are empty and word_count is 0.\n- evidence_span is a short phrase from the abstract supporting the summary.\n- reason_span is under 12 words.\n- word_count must equal whitespace-separated words in the summary.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCURRENT SUMMARY:\n{current_summary}\n\nISSUE FLAGS:\n{issue_flags}\n\nDATASET COMPONENT:\n{dataset_component}\n\nWrite the repaired under-14-word label now."
+}

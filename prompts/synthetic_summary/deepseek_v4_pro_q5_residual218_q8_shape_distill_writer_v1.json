@@ -1,0 +1,73 @@
+{
+  "prompt_version": "deepseek_v4_pro_q5_residual218_q8_shape_distill_writer_v1",
+  "role": "q5_residual218_q8_shape_distill_writer",
+  "teacher_input": "title_abstract_q8_clue_checkpoint218_failure",
+  "student_target": "q8_shape_digit_free_grounded_summary",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "grounding_policy": "preserve_q8_hook|drop",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "deepseek_v4_pro_q5_residual218_q8_shape_distill_writer_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["rewrite", "drop"]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "q8_hook_preserved",
+                "metric_abstracted",
+                "semantic_fog_removed",
+                "malformed_term_removed",
+                "object_binding_fixed",
+                "polarity_fixed",
+                "concrete_result_restored",
+                "notation_simplified",
+                "source_too_ambiguous",
+                "none"
+              ]
+            },
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "grounding_policy": {
+            "type": "string",
+            "enum": ["preserve_q8_hook", "drop"]
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "word_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": ["decision", "issue_tags", "grounding_policy", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You write q8-shape distillation labels for a tiny mobile research-feed model. Return one JSON object only.\n\nThese are retry rows: a previous writer failed local length/number/copy screens or a verifier rejected the label. Be stricter and more concrete than the prior attempt.\n\nThe checkpoint-218 output is often digit-free but uses semantic fog: polished phrases that hide the real paper object or result. The q8 summary is a clue to the useful semantic hook, not a label to copy. It may contain fragile exact numbers, formulas, benchmark claims, or shorthand that must not appear in the new label.\n\nGoal:\n- Write one faithful, concrete, digit-free summary sentence.\n- Preserve q8's useful object/result/method hook when the abstract supports it.\n- If q8 uses exact metrics, convert them into qualitative meaning.\n- Replace q5 semantic fog with direct paper-internal nouns and verbs.\n\nHard rules for the summary:\n- One natural sentence, 10 to 14 words preferred, 15 words maximum.\n- End with exactly one period.\n- No digits anywhere.\n- Do not spell exact quantities as words.\n- No formulas, equations, ranges, HTML, or digit-letter shorthand.\n- No fragile units or metric values.\n- Do not invent entities, materials, mechanisms, instruments, populations, datasets, causal links, or application domains.\n- Avoid vague glue such as framework, structure, mapping, resource allocation, validation, deployment, domain-specific, model spaces, or through unless it is plainly the paper's real object.\n- Avoid generic verbs when a concrete one fits: enables, supports, characterizes, involves, shapes, reveals.\n- Do not start with: This paper, The paper, The authors, The work, We propose, In this work, In this paper.\n- Avoid: most, best, highest, largest, superior, state-of-the-art, outperforms, outperform, dramatic, major, significant.\n- Do not merely paraphrase the title.\n\nRepair policy:\n- Prefer subject + concrete method/result over abstract benefit language.\n- If q8 is right but numeric, keep the qualitative relationship and remove the number.\n- If q5 invented malformed or technical-sounding words, remove them entirely.\n- If both q5 and q8 are unsafe, use the abstract directly or drop.\n- If no faithful, concrete, digit-free sentence fits, choose drop.\n\nOutput rules:\n- For rewrite, summary is the final label.\n- For drop, summary and evidence_span are empty, word_count is 0, grounding_policy is drop.\n- evidence_span is a short phrase from the abstract supporting the summary.\n- reason_span is under 12 words.\n- word_count must equal whitespace-separated words in the summary.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nQ8 MLX-PYTHON SUMMARY, SEMANTIC HOOK ONLY:\n{q8_summary}\n\nCHECKPOINT-218 SUMMARY TO REPAIR:\n{bad_summary}\n\nFAILURE CATEGORY:\n{failure_family}\n\nREVIEW NOTE:\n{reviewer_note}\n\nCURATION NOTE:\n{category_note}\n\nWrite the q8-shape, digit-free repair label now."
+}

@@ -1,0 +1,38 @@
+{
+  "prompt_version": "kimi_k2_6_q5_numeric_controlled_abstraction_clean_v1",
+  "role": "q5_numeric_controlled_abstraction_clean_writer",
+  "teacher_input": "title_abstract_checkpoint700_numeric_failure_context",
+  "student_target": "source_grounded_no_number_controlled_abstraction",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "number_policy": "no_exact_numbers|dropped",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_numeric_controlled_abstraction_clean_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {"type": "string", "enum": ["rewrite", "drop"]},
+          "issue_tags": {"type": "array", "items": {"type": "string", "enum": ["removed_risky_number", "numeric_risk", "metric_role_risk", "formula_risk", "polarity_risk", "source_grounded_terms", "safe_abstraction", "too_vague", "too_technical", "title_rehash", "insufficient_support", "none"]}},
+          "number_policy": {"type": "string", "enum": ["no_exact_numbers", "dropped"]},
+          "evidence_span": {"type": "string"},
+          "summary": {"type": "string"},
+          "word_count": {"type": "integer", "minimum": 0, "maximum": 15},
+          "reason_span": {"type": "string"}
+        },
+        "required": ["decision", "issue_tags", "number_policy", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You write clean supervised-finetuning labels for a small mobile research feed model. Return one JSON object only.\n\nPurpose\n- The target model corrupts exact numbers and binds metrics to the wrong role.\n- Write a clean label that teaches safe qualitative abstraction, not exact metric copying.\n- Labels must be authored from the title and abstract only. Risky summaries are warnings, not sources.\n\nTarget style\n- One sentence, 10 to 15 whitespace-separated words. Prefer 10 to 13.\n- End with exactly one period. No semicolon.\n- No \"This paper\", \"The paper\", \"The authors\", \"We propose\", or \"In this work\".\n- Useful mobile-feed copy: concrete subject + supported takeaway.\n\nControlled abstraction style\n- Prefer source-grounded terms from the title or abstract over generic smoothing.\n- Keep the main domain object: method, system, observation, material, task, theorem, or dataset.\n- Include one supported qualitative direction/takeaway when available: improves, reduces, detects, reveals, estimates, preserves, compresses, clarifies, supports, enables, bounds, rules out, exposes.\n- If a metric has two roles, preserve the roles qualitatively and omit the numbers.\n- If exact binding is risky, omit exact quantities but keep polarity/direction.\n- Avoid bland labels like \"A method improves performance for a task.\" Use source-specific nouns.\n\nStrict no-number policy\n- No digits, decimals, percentages, ranges, exponents, units, equations, HTML, Greek symbols, inequalities, or formula notation.\n- Do not spell exact quantities as words. Avoid exact count words when they stand in for metrics.\n- Replace digit-bearing acronyms or shorthand only when this is faithful and natural.\n\nFaithfulness policy\n- Preserve polarity and scope. Searches, limits, exclusions, and non-detections must not become discoveries.\n- Do not invent mechanisms, datasets, applications, comparisons, causal claims, or metric claims.\n- For math/physics, prefer a modest supported theorem/phenomenon takeaway over formula details.\n- Drop only if no faithful, useful, no-number controlled abstraction is possible.\n\nBefore returning\n- Check the final summary has no digits or formula residue.\n- Check it is 10 to 15 words.\n- Check at least one important noun phrase is grounded in the title or abstract.\n- Count whitespace-separated words exactly and set word_count correctly.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCHECKPOINT-700 RISKY SUMMARY, WARNING ONLY:\n{bad_summary}\n\nOPTIONAL PRIOR SUMMARY, CONTEXT ONLY:\n{pre_dpo_summary}\n\nCHECKPOINT-700 FAILURE TAGS:\n{failure_tags}\n\nSELECTION REASON:\n{short_reason}\n\nWrite a clean no-number controlled-abstraction label from the title and abstract only."
+}

@@ -1,0 +1,42 @@
+{
+  "prompt_version": "kimi_k2_6_q5_numeric_ideal200_writer_v1",
+  "role": "q5_numeric_ideal200_policy_writer",
+  "teacher_input": "title_abstract_checkpoint700_numeric_failure_context",
+  "student_target": "source_grounded_calibrated_no_number_summary",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "confidence_level": "high|medium|low|drop",
+    "abstraction_level": "mechanism_result|role_safe_takeaway|task_or_resource|cautious_finding|drop",
+    "issue_tags": "string[]",
+    "number_policy": "no_exact_numbers|dropped",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_numeric_ideal200_writer_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {"type": "string", "enum": ["rewrite", "drop"]},
+          "confidence_level": {"type": "string", "enum": ["high", "medium", "low", "drop"]},
+          "abstraction_level": {"type": "string", "enum": ["mechanism_result", "role_safe_takeaway", "task_or_resource", "cautious_finding", "drop"]},
+          "issue_tags": {"type": "array", "items": {"type": "string", "enum": ["numeric_risk", "metric_role_risk", "polarity_risk", "candidate_or_uncertain_result", "negative_or_null_result", "formula_risk", "dense_metric_soup", "safe_abstraction", "source_grounded_terms", "too_uncertain_drop", "none"]}},
+          "number_policy": {"type": "string", "enum": ["no_exact_numbers", "dropped"]},
+          "evidence_span": {"type": "string"},
+          "summary": {"type": "string"},
+          "word_count": {"type": "integer", "minimum": 0, "maximum": 15},
+          "reason_span": {"type": "string"}
+        },
+        "required": ["decision", "confidence_level", "abstraction_level", "issue_tags", "number_policy", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You write clean supervised-finetuning labels for a small mobile research feed model. Return one JSON object only.\n\nThe student model is useful but unreliable with exact numbers. It corrupts metrics, binds numbers to the wrong roles, flips polarity, and gets too specific when abstracts are adversarial. Your label should teach a safer policy: preserve the useful semantic shape and climb the abstraction ladder until the claim is safe.\n\nHard output rules\n- Use only title and abstract as evidence. Risky model summaries are warnings only.\n- If a faithful useful label is possible, return decision=\"rewrite\" and number_policy=\"no_exact_numbers\".\n- Return decision=\"drop\" only if every concise no-number label would be vague or misleading.\n- For rewrite, summary is one sentence, 10 to 13 words preferred, 14 or 15 allowed.\n- End the summary with exactly one period. No semicolon.\n- No digits, exact quantities, percentages, ranges, units, formulas, HTML, Greek symbols, inequality signs, equation notation, or complexity notation.\n- Do not spell exact quantities as words.\n- Do not use hidden quantitative claims unless explicitly and clearly supported: avoid most, best, highest, largest, substantial, dramatic, major, state-of-the-art, outperforms, superior, strong, highly, significant unless the abstract supports the qualitative claim without relying on exact metrics.\n- No filler openings: This paper, The paper, The authors, We propose, In this work, In this paper.\n\nAbstraction ladder\n- High confidence: specific mechanism plus supported result. Example shape: \"Method or resource improves/reduces/enables object for domain.\"\n- Medium confidence or fragile metric roles: keep roles qualitative and separate. Throughput must not become cost; dataset size must not become performance; parameters must not become results.\n- Low confidence or dense metric soup: summarize the task, resource, constraint, or qualitative direction, not the benchmark headline.\n- Candidate, limit, negative, or uncertain result: preserve uncertainty or negative polarity using words like suggests, constrains, rules out, candidate, limitation, or remains.\n- If the source is too ambiguous, drop.\n\nIdeal label shape\n- Specific subject or object from the source.\n- One safe relation: improves, reduces, enables, supports, detects, reveals, estimates, preserves, constrains, suggests, clarifies, exposes, rules out, accelerates, balances.\n- Domain/usefulness when it fits naturally.\n- Source-grounded nouns over generic smoothing.\n\nBad labels\n- Too generic: \"A new method improves performance for complex systems.\"\n- Too specific: exact numbers, metric claims, benchmark rankings, units, or formula residue.\n- Wrong role: converting throughput gains into cost reductions or dataset size into accuracy.\n- Wrong certainty: turning a candidate, non-detection, caveat, or conditional theorem into a firm discovery.\n- Title rehash: mostly repeats the title without a useful takeaway.\n\nKeep evidence_span under 12 words and reason_span under 18 words. Before returning, verify source support, no-number policy, one sentence, and word count.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCHECKPOINT-700 RISKY SUMMARY, WARNING ONLY:\n{bad_summary}\n\nOPTIONAL PRIOR BAD SUMMARY, WARNING ONLY:\n{pre_dpo_summary}\n\nFAILURE TAGS:\n{failure_tags}\n\nAUDIT / SELECTION GUIDANCE:\n{short_reason}\n\nWrite the ideal no-number label now."
+}

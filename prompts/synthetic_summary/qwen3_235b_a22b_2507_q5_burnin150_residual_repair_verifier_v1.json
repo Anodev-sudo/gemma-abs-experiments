@@ -1,0 +1,73 @@
+{
+  "prompt_version": "qwen3_235b_a22b_2507_q5_burnin150_residual_repair_verifier_v1",
+  "role": "q5_burnin150_residual_repair_verifier",
+  "teacher_input": "title_abstract_burnin150_failure_candidate_repair",
+  "student_target": "verification_only",
+  "response_schema": {
+    "decision": "accept|reject",
+    "issue_tags": "string[]",
+    "number_policy_ok": "boolean",
+    "evidence_span": "string",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "qwen3_235b_a22b_2507_q5_burnin150_residual_repair_verifier_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["accept", "reject"]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "contains_digit_or_number",
+                "exact_quantity_word",
+                "formula_or_symbol",
+                "wrong_object",
+                "wrong_metric_binding",
+                "wrong_polarity",
+                "semantic_drift",
+                "unsupported_claim",
+                "too_vague",
+                "too_generic",
+                "not_source_grounded",
+                "too_long",
+                "too_short",
+                "title_rehash",
+                "bad_opening",
+                "not_single_sentence",
+                "awkward",
+                "repetition",
+                "copies_burnin_failure",
+                "hidden_benchmark_or_superlative",
+                "none"
+              ]
+            },
+            "maxItems": 5,
+            "uniqueItems": true
+          },
+          "number_policy_ok": {
+            "type": "boolean"
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": ["decision", "issue_tags", "number_policy_ok", "evidence_span", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You verify strict residual repair labels for a tiny mobile research-feed model. Return one JSON object only.\n\nBe high-scrutiny and precision-first. Reject when ambiguous.\n\nAccept only if ALL are true:\n- Candidate is faithful to the title and abstract.\n- Candidate fixes the reviewed burn-in failure and does not preserve its bad wording or bad claim.\n- Candidate is exactly one natural sentence and 10 to 15 whitespace-separated words.\n- Candidate contains no digits, exact written quantities, percentages, ranges, units, equations, Greek symbols, HTML, formula notation, complexity notation, or digit-letter shorthand.\n- Candidate preserves useful qualitative meaning when the source has measurements, metrics, or comparisons.\n- Candidate preserves the real subject, object, mechanism, role, polarity, certainty, and causal direction.\n- Candidate is concrete enough for a mobile feed and not merely a title rehash.\n- Candidate avoids unsupported entities, mechanisms, comparisons, causal claims, hidden superlatives, and benchmark/winner language.\n- Candidate is grammatical, non-repetitive, and not awkward.\n\nReject for any concrete failure: digit residue, exact quantity word, wrong object, wrong value binding, polarity flip, unsupported claim, too generic, title rehash, awkward phrasing, malformed wording, not source grounded, bad opening, or multiple sentences.\n\nFor accepted rows, use issue_tags=[\"none\"], number_policy_ok=true, and quote a short supporting phrase from the abstract. For rejected rows, issue_tags must not include \"none\" and reason_span must name the actual failure.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nBURN-IN CHECKPOINT-150 OUTPUT TO REPAIR:\n{bad_summary}\n\nCHECKPOINT-700 BASELINE, IF AVAILABLE, WARNING ONLY:\n{pre_dpo_summary}\n\nREVIEWED FAILURE TAGS:\n{failure_tags}\n\nREVIEW NOTE AND HEURISTIC CONTEXT:\n{short_reason}\n\nWRITER DECISION:\n{writer_decision}\n\nWRITER ISSUE TAGS:\n{writer_issue_tags}\n\nWRITER NUMBER POLICY:\n{number_policy}\n\nWRITER EVIDENCE SPAN:\n{writer_evidence_span}\n\nCANDIDATE REPAIR SUMMARY:\n{repair_summary}\n\nWRITER REASON:\n{writer_reason_span}"
+}

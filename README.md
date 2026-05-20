@@ -5,6 +5,7 @@ This repository now treats source control and data storage as separate concerns.
 ## Layout
 
 - `scripts/`, `prompts/`, `tools/`, and hand-written experiment notes stay in the main git repo.
+- `scripts/summary_generation/` contains the reusable config-driven writer/reviewer tool for generating corrective summary training rows.
 - `hf_dataset/` stages publishable corpora and promoted training-set snapshots for a separate Hugging Face dataset repo.
 - `hf_bucket/` stages raw run artifacts and machine-generated experiment payloads for a separate Hugging Face bucket.
 

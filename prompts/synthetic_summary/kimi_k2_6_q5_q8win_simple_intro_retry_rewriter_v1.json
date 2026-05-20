@@ -1,0 +1,64 @@
+{
+  "prompt_version": "kimi_k2_6_q5_q8win_simple_intro_retry_rewriter_v1",
+  "role": "q5_q8win_simple_intro_retry_rewriter",
+  "teacher_input": "title_abstract_q8_q5_prior_kimi_failure_note",
+  "student_target": "faithful_compact_retry_label",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_q8win_simple_intro_retry_rewriter_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": { "type": "string", "enum": ["rewrite", "drop"] },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "invented_number",
+                "wrong_number_binding",
+                "numeric_error",
+                "unsupported_number",
+                "unsupported_entity",
+                "unsupported_entity_label",
+                "unsupported_mechanism",
+                "unsupported_causal_claim",
+                "overstrong_claim",
+                "polarity_flip",
+                "polarity_risk",
+                "misses_point",
+                "malformed_repetition",
+                "non_answer",
+                "title_rehash",
+                "too_generic",
+                "copies_q5_failure",
+                "style_drift",
+                "local_filter",
+                "none"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "evidence_span": { "type": "string" },
+          "summary": { "type": "string" },
+          "word_count": { "type": "integer", "minimum": 0, "maximum": 15 },
+          "reason_span": { "type": "string" }
+        },
+        "required": ["decision", "issue_tags", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You repair failed Kimi/Qwen training-label attempts for a small paper-feed summary model. Return one JSON object only.\n\nContext\n- A prior Kimi summary failed either local gates or Qwen verification.\n- The failure note is actionable feedback; fix it directly.\n- The q8 summary is a useful hint, not the source of truth.\n- The title and abstract are the only authority.\n\nGoal\n- Produce one faithful, compact, readable feed sentence.\n- Preserve the central hook that made q8 better than current q5.\n- If the prior summary was too long, compress it without dropping the main value.\n- If Qwen said a metric or detail was central, include it if the abstract supports it.\n- If Qwen said a number was misbound, repair the object, metric, condition, and direction.\n- Prefer the simplest sentence that remains concrete.\n\nHard style rules\n- Summary must be exactly one sentence.\n- Summary must be 10 to 15 whitespace-separated words inclusive.\n- Count every whitespace-separated word before answering.\n- End with exactly one period.\n- No openings like \"This paper\", \"We propose\", \"The authors\", or \"In this work\".\n- No formulas, LaTeX, semicolons, HTML, or dense notation.\n- Do not merely rephrase the title.\n\nFaithfulness rules\n- Preserve polarity, direction, limitation, uncertainty, and scope.\n- Do not invent or misbind numbers, entities, methods, datasets, diseases, materials, metrics, mechanisms, or claims.\n- Use exact numbers only when central and easy to bind; otherwise prefer qualitative wording.\n- Never use vague shortcuts such as improves, reduces, predicts, or enables unless the abstract supports what improves, reduces, predicts, or enables.\n- If a faithful useful sentence cannot fit within 15 words, choose drop.\n\nOutput rules\n- For rewrite, summary is the final label and evidence_span is a short abstract phrase supporting it.\n- For drop, summary and evidence_span must be empty, word_count must be 0, and reason_span explains why.\n- issue_tags should name the repaired failure, or none if only length/style changed.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nPRIOR FAILURE STAGE:\n{prior_failure_stage}\n\nPRIOR FAILURE NOTE:\n{prior_failure_note}\n\nQ5 ISSUE TAGS:\n{q5_issue_tags}\n\nBLIND REVIEW NOTE:\n{reviewer_note}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nQ8 WINNING SUMMARY HINT:\n{q8_summary}\n\nCURRENT Q5 LOSING SUMMARY:\n{q5_summary}\n\nPRIOR KIMI SUMMARY TO REPAIR:\n{prior_kimi_summary}"
+}

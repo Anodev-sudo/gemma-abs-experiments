@@ -1,0 +1,30 @@
+model: "google/gemma-3-270m-it"
+model_path: null
+hf_home: "hf_bucket/experiments/mlx_lora/.hf-home"
+model_dtype: "float32"
+
+# Stronger replay of the same Kimi/Qwen q8-win labels after the first pass
+# narrowed, but did not close, the q8 blind-review gap.
+converted_adapter_dir: "hf_bucket/experiments/sft/q5_step2400_broad_reweighted_basin_v1/lr6e7/cleanup_after_ckpt2500/lr4e7/checkpoint-30"
+dataset_path: "hf_bucket/experiments/sft/q5_step2400_broad_reweighted_basin_v1/lr6e7/cleanup_after_ckpt2500/lr4e7/q8win_after_ckpt30/dataset_78cleanup_x3_v1/train.jsonl"
+output_dir: "hf_bucket/experiments/sft/q5_step2400_broad_reweighted_basin_v1/lr6e7/cleanup_after_ckpt2500/lr4e7/q8win_after_ckpt30/lr6e7_x3_ep2"
+
+seed: 20260518
+
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+num_train_epochs: 2
+learning_rate: 6.0e-7
+warmup_ratio: 0.08
+max_seq_length: 1088
+weighted_loss_normalization: "label_count"
+gradient_checkpointing: false
+
+logging_steps: 10
+save_strategy: "steps"
+save_steps: 20
+save_total_limit: 8
+max_grad_norm: 1.0
+dataloader_num_workers: 0
+report_to: []
+copy_config_into_output: true

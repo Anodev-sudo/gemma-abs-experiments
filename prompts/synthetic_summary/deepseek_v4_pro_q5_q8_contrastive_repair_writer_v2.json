@@ -1,0 +1,90 @@
+{
+  "prompt_version": "deepseek_v4_pro_q5_q8_contrastive_repair_writer_v2",
+  "role": "q5_q8_contrastive_repair_writer",
+  "teacher_input": "title_abstract_q8_reference_q5_failure_manual_review",
+  "student_target": "digit_free_grounded_summary",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "grounding_policy": "preserve_q8_hook|abstract_q8_metric|use_abstract_directly|drop",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "deepseek_v4_pro_q5_q8_contrastive_repair_writer_v2",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "rewrite",
+              "drop"
+            ]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "q8_hook_preserved",
+                "metric_abstracted",
+                "semantic_fog_removed",
+                "malformed_term_removed",
+                "object_binding_fixed",
+                "polarity_fixed",
+                "concrete_result_restored",
+                "notation_simplified",
+                "q8_unsafe_or_numeric",
+                "source_too_ambiguous",
+                "none"
+              ]
+            },
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "grounding_policy": {
+            "type": "string",
+            "enum": [
+              "preserve_q8_hook",
+              "abstract_q8_metric",
+              "use_abstract_directly",
+              "drop"
+            ]
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "word_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "grounding_policy",
+          "evidence_span",
+          "summary",
+          "word_count",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You write repair labels for a tiny mobile research-feed model. Return one JSON object only.\n\nThe q5 summary has been manually reviewed as a real failure. The q8 summary is a useful reference, but it may contain digits, formulas, exact metrics, benchmark wording, or other details that are unsafe for the q5 deployment target. Use q8 as a clue, not a label to copy.\n\nGoal:\n- Write one faithful, concrete, digit-free summary sentence.\n- Fix the reviewed q5 failure: semantic fog, invented entity, lost result, malformed term, value/polarity error, or digit/metric issue.\n- Preserve the real paper object, method, result, caveat, or qualitative role.\n- If q8 contains exact metrics, convert them into safe qualitative meaning.\n\nHard rules for the summary:\n- One natural sentence, 10 to 14 words preferred, 15 words maximum.\n- End with exactly one period.\n- No digits anywhere, including superscripts or digit-like symbols.\n- Do not spell exact metric values as words; ordinary source-grounded descriptors like one-dimensional or double-sided are allowed.\n- No formulas, equations, ranges, HTML, or digit-letter shorthand.\n- No fragile units, percentages, benchmark scores, ranks, ranges, or metric values.\n- Do not invent entities, mechanisms, materials, datasets, populations, instruments, causal links, or application domains.\n- Avoid vague glue unless it is plainly the paper's actual object: framework, structure, mapping, resource allocation, validation, deployment, domain-specific, model spaces, through.\n- Avoid generic verbs when a concrete verb fits: enables, supports, characterizes, involves, shapes, reveals.\n- Do not start with: This paper, The paper, The authors, The work, We propose, In this work, In this paper.\n- Avoid: most, best, highest, largest, superior, state-of-the-art, outperforms, outperform, dramatic, major, significant.\n- Do not merely paraphrase the title.\n\nRepair policy:\n- Prefer direct source nouns and verbs over abstract benefit language.\n- If q8 is correct but numeric, preserve the qualitative relationship and remove the number.\n- If q5 invented malformed or technical-sounding wording, remove it completely.\n- If q8 and q5 are both unsafe, use the abstract directly.\n- If no faithful, concrete, digit-free summary fits, choose drop.\n\nOutput rules:\n- For rewrite, summary is the final label.\n- For drop, summary and evidence_span are empty, word_count is 0, grounding_policy is drop.\n- evidence_span is a short phrase from the abstract supporting the summary.\n- reason_span is under 12 words.\n- word_count must equal whitespace-separated words in the summary.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nQ8 MLX-PYTHON SUMMARY, REFERENCE ONLY:\n{q8_summary}\n\nQ5 PROMOTED SUMMARY TO REPAIR:\n{bad_summary}\n\nMANUAL FAILURE TYPE:\n{failure_family}\n\nMANUAL SEVERITY:\n{review_severity}\n\nMANUAL NOTE:\n{reviewer_note}\n\nHEURISTIC SOURCE BUCKET:\n{source_bucket}\n\nHEURISTIC FLAGS:\n{heuristic_flags}\n\nMISSING Q8 SOURCE TERMS:\n{missing_q8_source_terms}\n\nQ5 UNANCHORED TERMS:\n{q5_unanchored_terms}\n\nWrite the digit-free repair label now."
+}

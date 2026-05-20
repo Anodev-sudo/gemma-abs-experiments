@@ -313,10 +313,15 @@ def main() -> None:
     if config.get("copy_config_into_output", True):
         shutil.copy2(config_path, output_dir / config_path.name)
 
-    print("[run-dpo] running final valid/test evaluation")
-    valid_metrics = trainer.evaluate(metric_key_prefix="valid")
-    prepared_test_dataset = prepare_eval_dataset(trainer, test_dataset, "test")
-    test_metrics = trainer.evaluate(eval_dataset=prepared_test_dataset, metric_key_prefix="test")
+    if bool(config.get("skip_final_eval", False)):
+        print("[run-dpo] skipping final valid/test evaluation")
+        valid_metrics = None
+        test_metrics = None
+    else:
+        print("[run-dpo] running final valid/test evaluation")
+        valid_metrics = trainer.evaluate(metric_key_prefix="valid")
+        prepared_test_dataset = prepare_eval_dataset(trainer, test_dataset, "test")
+        test_metrics = trainer.evaluate(eval_dataset=prepared_test_dataset, metric_key_prefix="test")
 
     manifest["valid_metrics"] = valid_metrics
     manifest["test_metrics"] = test_metrics

@@ -1,0 +1,42 @@
+{
+  "prompt_version": "kimi_k2_6_q5_numeric_ideal200_writer_v3_tight",
+  "role": "q5_numeric_ideal200_policy_writer_tight",
+  "teacher_input": "title_abstract_checkpoint700_numeric_failure_context",
+  "student_target": "tight_source_grounded_calibrated_no_number_summary",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "confidence_level": "high|medium|low|drop",
+    "abstraction_level": "mechanism_result|role_safe_takeaway|task_or_resource|cautious_finding|drop",
+    "issue_tags": "string[]",
+    "number_policy": "no_exact_numbers|dropped",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "kimi_k2_6_q5_numeric_ideal200_writer_v3_tight",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {"type": "string", "enum": ["rewrite", "drop"]},
+          "confidence_level": {"type": "string", "enum": ["high", "medium", "low", "drop"]},
+          "abstraction_level": {"type": "string", "enum": ["mechanism_result", "role_safe_takeaway", "task_or_resource", "cautious_finding", "drop"]},
+          "issue_tags": {"type": "array", "items": {"type": "string", "enum": ["numeric_risk", "metric_role_risk", "polarity_risk", "candidate_or_uncertain_result", "negative_or_null_result", "formula_risk", "dense_metric_soup", "safe_abstraction", "source_grounded_terms", "too_uncertain_drop", "none"]}},
+          "number_policy": {"type": "string", "enum": ["no_exact_numbers", "dropped"]},
+          "evidence_span": {"type": "string"},
+          "summary": {"type": "string"},
+          "word_count": {"type": "integer", "minimum": 10, "maximum": 12},
+          "reason_span": {"type": "string"}
+        },
+        "required": ["decision", "confidence_level", "abstraction_level", "issue_tags", "number_policy", "evidence_span", "summary", "word_count", "reason_span"]
+      }
+    }
+  },
+  "system_prompt": "You write tight supervised-finetuning labels for a small mobile research feed model. Return one JSON object only.\n\nThe student model corrupts exact numbers, metric roles, polarity, and specificity. Teach safe qualitative abstraction.\n\nNon-negotiable summary rules\n- Use only title and abstract as evidence. Risky model summaries are warnings only.\n- If faithful and useful, return rewrite. Drop only if every tight no-number label would mislead.\n- Summary must be exactly one sentence and 10 to 12 words.\n- End summary with exactly one period. No semicolon.\n- No digits, exact quantities, percentages, ranges, units, formulas, HTML, Greek symbols, inequality signs, equations, or complexity notation.\n- Do not spell exact quantities as words.\n- Never use these words in the summary: most, widespread, best, highest, largest, substantial, dramatic, major, state-of-the-art, outperforms, superior, strong, highly, significant.\n- Never start with: This paper, The paper, The authors, The work, We propose, In this work, In this paper.\n\nSafe abstraction ladder\n- If confident: source object + action + safe outcome.\n- If metrics are fragile: keep the roles qualitative and separate. Never swap throughput, cost, accuracy, latency, parameters, or dataset size.\n- If the abstract is metric soup: summarize the resource, task, constraint, or qualitative direction.\n- If candidate, limit, caveat, or negative: preserve uncertainty using candidate, suggests, constrains, rules out, limitation, or remains.\n- Use one relation only. No stacked clauses. Avoid but/while unless needed for polarity.\n\nPreferred compact verbs: enables, supports, reduces, preserves, detects, reveals, estimates, constrains, suggests, exposes, automates, accelerates, balances, tracks, classifies.\n\nAvoid generic smoothing. Use concrete source nouns, but do not rehash the title. Avoid benchmark headlines and qualitative superlatives.\n\nGood shape examples\n- \"Layer scheduling balances throughput and cost across heterogeneous training resources.\"\n- \"Coronagraphic imaging identifies a candidate companion while ruling out brighter sources.\"\n- \"Pseudocode extraction supports algorithm understanding and automated code generation.\"\n\nKeep evidence_span under 8 words and reason_span under 12 words. Count the summary words exactly. If over 12, remove adjectives or the second object. If still over 12, drop.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nCHECKPOINT-700 RISKY SUMMARY, WARNING ONLY:\n{bad_summary}\n\nOPTIONAL PRIOR BAD SUMMARY, WARNING ONLY:\n{pre_dpo_summary}\n\nFAILURE TAGS:\n{failure_tags}\n\nAUDIT / SELECTION GUIDANCE:\n{short_reason}\n\nWrite the ideal tight no-number label now."
+}
