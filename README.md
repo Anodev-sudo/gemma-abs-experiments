@@ -74,3 +74,9 @@ hf_dataset/  hf_bucket/           READMEs only (see below)
 Not in git. Paths that start with `hf_dataset/` or `hf_bucket/` in configs, scripts and notes
 point to data kept in private Hugging Face storage ([`REMOTE_TARGETS.md`](REMOTE_TARGETS.md)).
 The code and write-ups are complete, but most scripts need that data to run.
+
+## License
+
+Code, prompts and write-ups in this repo are under the [MIT License](LICENSE). Model weights
+are not included; they are fine-tunes of Gemma 3 and fall under Google's
+[Gemma Terms of Use](https://ai.google.dev/gemma/terms).
