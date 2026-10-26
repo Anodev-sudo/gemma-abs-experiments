@@ -87,6 +87,8 @@ class Q4HardeningWorkflowTests(unittest.TestCase):
             generation_rows,
             q8_label="q8_promoted",
             q4_label="q4_lineage",
+            candidate_alias="q4",
+            review_id_prefix="q4_hardening",
             seed=1,
         )
 
