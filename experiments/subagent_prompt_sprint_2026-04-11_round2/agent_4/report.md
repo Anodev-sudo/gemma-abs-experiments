@@ -2,9 +2,9 @@
 
 ## Prompt idea
 
-Generator prompt: [deepseek_v32_generator_agent4_theory_calm_v1.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_4/deepseek_v32_generator_agent4_theory_calm_v1.json)
+Generator prompt: [deepseek_v32_generator_agent4_theory_calm_v1.json](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_4/deepseek_v32_generator_agent4_theory_calm_v1.json)
 
-Reviewer: unchanged baseline [qwen3_235b_a22b_2507_reviewer_classifier_v2_headline_baseline.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/prompts/synthetic_summary/qwen3_235b_a22b_2507_reviewer_classifier_v2_headline_baseline.json)
+Reviewer: unchanged baseline [qwen3_235b_a22b_2507_reviewer_classifier_v2_headline_baseline.json](/prompts/synthetic_summary/qwen3_235b_a22b_2507_reviewer_classifier_v2_headline_baseline.json)
 
 Direction:
 - Keep the generator payoff-first.
@@ -16,7 +16,7 @@ Direction:
 
 ### Run A
 
-Manifest: [run_manifest.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_4/run_a/run_manifest.json)
+Manifest: [run_manifest.json](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_4/run_a/run_manifest.json)
 
 - Seed: `20260411`
 - Kept: `81`
@@ -31,7 +31,7 @@ Manifest: [run_manifest.json](/Users/alanwren/myApps/model-experiments/gemma-abs
 
 ### Run B
 
-Manifest: [run_manifest.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_4/run_b/run_manifest.json)
+Manifest: [run_manifest.json](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_4/run_b/run_manifest.json)
 
 - Seed: `20260412`
 - Kept: `80`
@@ -59,18 +59,18 @@ Manifest: [run_manifest.json](/Users/alanwren/myApps/model-experiments/gemma-abs
 The theory-friendly nudge helped in some places.
 
 Good examples:
-- [run_a/training_rows.jsonl](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_4/run_a/training_rows.jsonl)
+- [run_a/training_rows.jsonl](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_4/run_a/training_rows.jsonl)
   `Local feedback and open-loop Nash equilibria share optimality conditions in general zero-sum games.`
-- [run_a/training_rows.jsonl](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_4/run_a/training_rows.jsonl)
+- [run_a/training_rows.jsonl](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_4/run_a/training_rows.jsonl)
   `Measurable dilators isolate the structural core of Martin's large-cardinal proof of Π¹₂-determinacy.`
-- [run_a/training_rows.jsonl](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_4/run_a/training_rows.jsonl)
+- [run_a/training_rows.jsonl](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_4/run_a/training_rows.jsonl)
   `Geometrically finite ball quotients are Stein when the critical exponent is below 2.`
 
 These feel more literal and trustworthy than the more aggressive headline style.
 
 But the branch still has some weak spots:
 - It sometimes stays artifact-led, for example `A third-order dynamical system solves...`
-- A few theory lines are still too interpretive or awkward, for example the Tarski summary in [run_b/training_rows.jsonl](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_4/run_b/training_rows.jsonl)
+- A few theory lines are still too interpretive or awkward, for example the Tarski summary in [run_b/training_rows.jsonl](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_4/run_b/training_rows.jsonl)
 - The calmer tone did not automatically reduce generic openings as much as I wanted
 
 ## Recommendation
