@@ -1,0 +1,52 @@
+
+================================================================
+REPR  (papers with all 3 models scored: 237)
+================================================================
+model         faith          95% CI   read   hook
+q4qlora       1.755  [1.637, 1.876]   1.68   1.18
+q5recover     1.926  [1.812, 2.040]   1.70   1.25
+granite       2.333  [2.236, 2.428]   1.91   1.46
+
+paired faithfulness deltas (per-paper, bootstrap 95% CI):
+  q4qlora    - granite   : -0.578  [-0.726, -0.428]  *significant*
+  q5recover  - granite   : -0.407  [-0.549, -0.268]  *significant*
+  q4qlora    - q5recover : -0.171  [-0.314, -0.021]  *significant*
+
+hallucination tails (per-paper mean faithful, /237 papers):
+model         <=1 (misleading)   <=0.5 (hard/inverted)
+q4qlora             87 (36.7%)            31 (13.1%)
+q5recover           73 (30.8%)            20 ( 8.4%)
+granite             34 (14.3%)             6 ( 2.5%)
+
+best-of-3 win share (ties split):
+  q4qlora       22.4%
+  q5recover     28.1%
+  granite       49.6%
+
+inter-rater (n=696 paper-slot pairs both passes): exact=78%  within1=99%  MAD=0.22
+
+================================================================
+STRESS  (papers with all 3 models scored: 149)
+================================================================
+model         faith          95% CI   read   hook
+q4qlora       1.815  [1.661, 1.966]   1.63   1.17
+q5recover     1.842  [1.688, 2.000]   1.69   1.20
+granite       2.356  [2.215, 2.487]   1.85   1.39
+
+paired faithfulness deltas (per-paper, bootstrap 95% CI):
+  q4qlora    - granite   : -0.540  [-0.745, -0.336]  *significant*
+  q5recover  - granite   : -0.513  [-0.718, -0.312]  *significant*
+  q4qlora    - q5recover : -0.027  [-0.225, +0.181]
+
+hallucination tails (per-paper mean faithful, /149 papers):
+model         <=1 (misleading)   <=0.5 (hard/inverted)
+q4qlora             55 (36.9%)            19 (12.8%)
+q5recover           50 (33.6%)            20 (13.4%)
+granite             21 (14.1%)             5 ( 3.4%)
+
+best-of-3 win share (ties split):
+  q4qlora       25.2%
+  q5recover     26.2%
+  granite       48.7%
+
+inter-rater (n=429 paper-slot pairs both passes): exact=78%  within1=100%  MAD=0.22

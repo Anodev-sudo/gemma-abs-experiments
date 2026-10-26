@@ -1,0 +1,40 @@
+
+============================================================
+REPR  (n=238 papers, all 3 scored)
+============================================================
+model       faith          95% CI   read   hook
+df25q5      1.706  [1.588, 1.821]   1.65   1.14
+df100q5     1.855  [1.733, 1.973]   1.69   1.21
+granite     2.313  [2.216, 2.412]   1.89   1.48
+
+paired faithfulness deltas (per-paper, bootstrap 95% CI):
+  df25q5   - granite : -0.607  [-0.752, -0.460]  *sig*
+  df100q5  - granite : -0.458  [-0.613, -0.311]  *sig*
+  df25q5   - df100q5 : -0.149  [-0.277, -0.015]  *sig*
+
+hallucination tails (/238):  model          <=1     <=0.5
+                         df25q5      91 (38.2%)  30 (12.6%)
+                         df100q5     80 (33.6%)  27 (11.3%)
+                         granite     42 (17.6%)   6 ( 2.5%)
+
+inter-rater (n=684): exact=79% within1=100% MAD=0.22
+
+============================================================
+STRESS  (n=150 papers, all 3 scored)
+============================================================
+model       faith          95% CI   read   hook
+df25q5      1.973  [1.827, 2.123]   1.77   1.16
+df100q5     1.803  [1.650, 1.957]   1.69   1.13
+granite     2.317  [2.193, 2.440]   1.88   1.36
+
+paired faithfulness deltas (per-paper, bootstrap 95% CI):
+  df25q5   - granite : -0.343  [-0.543, -0.147]  *sig*
+  df100q5  - granite : -0.513  [-0.713, -0.310]  *sig*
+  df25q5   - df100q5 : +0.170  [+0.010, +0.337]  *sig*
+
+hallucination tails (/150):  model          <=1     <=0.5
+                         df25q5      42 (28.0%)  12 ( 8.0%)
+                         df100q5     53 (35.3%)  19 (12.7%)
+                         granite     22 (14.7%)   5 ( 3.3%)
+
+inter-rater (n=441): exact=78% within1=99% MAD=0.23

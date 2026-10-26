@@ -1,0 +1,36 @@
+# Curriculum STAGE 2 — fresh STYLE voice drill on top of faithful grounding.
+# Resumes the faithful stage-1 adapter, continues on the 2,500 gated style rows (hook-led,
+# faithfulness-verified, quality>=2). Tests whether a faithfulness-gated style set buys back hook
+# WITHOUT the drift the raw human gold caused. Same iters/LR as the gold voice drill (clean compare).
+model: "quant_probe/stripped_base_df100"
+train: true
+test: true
+data: "training/data/curriculum_stage1_style_v1"
+
+fine_tune_type: lora
+num_layers: -1
+lora_parameters:
+  keys: ["self_attn.q_proj","self_attn.k_proj","self_attn.v_proj","self_attn.o_proj","mlp.gate_proj","mlp.up_proj","mlp.down_proj"]
+  rank: 16
+  scale: 10.0
+  dropout: 0.05
+
+resume_adapter_file: "training/runs/gemma_v5_curriculum_df100_faithful_v1/stage1/adapters/adapters.safetensors"
+
+batch_size: 4
+iters: 400
+max_seq_length: 1024
+mask_prompt: true
+learning_rate: 5.0e-6
+lr_schedule:
+  name: cosine_decay
+  warmup: 20
+  warmup_init: 1.0e-7
+  arguments: [5.0e-6, 400, 5.0e-7]
+save_every: 50
+steps_per_eval: 50
+steps_per_report: 10
+val_batches: -1
+test_batches: -1
+seed: 20260616
+adapter_path: "training/runs/gemma_v5_curriculum_df100_faithful_style_v1/stage2/adapters"
