@@ -1,6 +1,6 @@
 # gemma-lab-advanced: lab log
 
-Running log kept during the work (June 2026), newest status at the top. Kept as written. For a short summary see README.md; for the verdict see CONCLUSION.md.
+Running log kept during the work (June 2026), newest status at the top. Kept as written. Where it says "statistically TIED" with Granite, read "no significant difference": the intervals can't rule out a gap of about a quarter point. For a short summary see README.md; for the verdict see CONCLUSION.md.
 
 Isolated, self-contained lab for one question: **can gemma-3-270m be made viable
 for the arXiv "feed brief" task** (one faithful ~10–14-word sentence giving a

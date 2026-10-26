@@ -1,5 +1,9 @@
 # 🏁 FAITHFUL (97 MB) ≈ GRANITE (374 MB) ON FAITHFULNESS — same-runtime head-to-head (2026-06-16)
 
+> Note added Oct 2026: "tied" in this section means no significant difference, not shown
+> equal. The 95% intervals (−0.26 to +0.03 typical, −0.35 to +0.05 hard) leave room for a gap
+> of about a quarter point, and would fail the −0.10 non-inferiority bar used for cond_hook.
+
 The founding question answered. `faithful_only_q5` (97 MB gemma q5) vs shipped-era Granite 4.0 350m q8
 (374 MB) — both through the IDENTICAL `gen_threeway.py` harness (same BRIEF prompt, temp 0, max 40 tok,
 MLX load+generate), regenerated in one pass so prompt version is provably identical. Blind 2-way (X/Y),

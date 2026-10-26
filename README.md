@@ -3,8 +3,8 @@
 Teaching very small language models to write one-sentence briefs for arXiv papers, so a
 phone can do it on-device with no server call.
 
-The end result is a 97 MB build of Gemma 3 270M that ties IBM's Granite 4.0 350M (374 MB) on
-faithfulness to the abstract. It runs on-device in FirstPass, an arXiv reading app. All
+The end result is a 97 MB build of Gemma 3 270M that comes within about a tenth of a point of
+IBM's Granite 4.0 350M (374 MB) on faithfulness to the abstract, with no significant difference. It runs on-device in FirstPass, an arXiv reading app. All
 training ran on one MacBook, with LoRA in [MLX](https://github.com/ml-explore/mlx).
 
 A brief answers "why might I open this paper?" in one plain sentence of about 10 to 15 words.
@@ -26,8 +26,8 @@ it shipped first, at 8-bit.
 
 **Phase 2, June 2026 ([`gemma-lab-advanced/`](gemma-lab-advanced/)).** Closing the gap. Cut
 Gemma's vocabulary to the tokens arXiv actually uses, distilled plain, verified briefs from a
-larger Gemma, fine-tuned on those alone, and quantized to 5 bits. That build matches Granite on
-faithfulness at about a quarter of the size. Granite still writes catchier briefs; the lab
+larger Gemma, fine-tuned on those alone, and quantized to 5 bits. That build lands close behind
+Granite on faithfulness at about a quarter of the size. Granite still writes catchier briefs; the lab
 explains why that gap was left alone.
 
 | | Gemma 3 270M, q5 | Granite 4.0 350M, q8 |
@@ -36,8 +36,9 @@ explains why that gap was left alone.
 | Faithful (0 to 3), typical / hard papers | 2.08 / 2.09 | 2.20 / 2.24 |
 | Hook (0 to 3), typical papers | 1.09 | 1.37 |
 
-Faithfulness gaps are within the 95% intervals; the hook gap is not. Method and full numbers
-are in [`gemma-lab-advanced/README.md`](gemma-lab-advanced/README.md).
+Neither faithfulness gap is significant (95% intervals −0.26 to +0.03 and −0.35 to +0.05), but
+those intervals leave room for a gap of about a quarter point, so this is not proof the two are
+equal. The hook gap is significant. Method and full numbers are in [`gemma-lab-advanced/README.md`](gemma-lab-advanced/README.md).
 
 ## Where to start
 

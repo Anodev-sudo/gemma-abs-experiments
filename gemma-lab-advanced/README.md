@@ -2,7 +2,8 @@
 
 Can Gemma 3 270M write a faithful one-sentence brief for an arXiv paper, and still fit in
 under 100 MB on a phone? This lab says yes. The result is `faithful_only_q5`, a 97 MB model
-that matches IBM's Granite 4.0 350M (374 MB at 8-bit) on faithfulness.
+that comes within about a tenth of a point of IBM's Granite 4.0 350M (374 MB at 8-bit) on
+faithfulness, with no significant difference.
 
 A brief is one plain sentence, about 10 to 14 words, that tells a reader why they might open
 the paper. "Faithful" means every claim in it is backed by the abstract.
@@ -20,8 +21,11 @@ Same prompt, same MLX runtime, greedy decoding, blind judges. Scores are 0 to 3.
 | Readable, typical papers | 1.71 | 1.80 |
 | Hook, typical papers | 1.09 | 1.37 |
 
-The faithfulness gaps (-0.11 and -0.14) sit inside their 95% bootstrap intervals, so the two
-models tie. So do the hallucination rates. Granite keeps a real lead on hook, the score for how
+Gemma trails on faithfulness by 0.11 on typical papers (95% bootstrap interval −0.26 to +0.03)
+and 0.14 on hard ones (−0.35 to +0.05). Neither gap is significant, and hallucination rates are
+about the same. That is not proof the two are equal: the intervals leave room for a gap of
+about a quarter point, which would fail the −0.10 non-inferiority bar this lab set for its last
+experiment. It does put a model a quarter of the size close behind. Granite keeps a real lead on hook, the score for how
 much a brief makes you want to read on. Three attempts to close that gap moved hook by nothing,
 and two of them cost faithfulness, so the lab treats it as a limit of model size and leaves it.
 Full numbers: [`quant_probe/VOCAB_STRIP_FINDINGS.md`](quant_probe/VOCAB_STRIP_FINDINGS.md) (top
