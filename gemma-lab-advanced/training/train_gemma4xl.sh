@@ -3,7 +3,7 @@
 #   stage1 = brief-OBJECTIVE grounding (5314 verified briefs) on stripped_base_df100
 #   stage2 = voice drill on 894 gold (resumes stage1 adapter)
 set -euo pipefail
-cd /Users/alanwren/myApps/model-experiments/gemma-lab-advanced
+cd "$(dirname "$0")/.."   # lab root
 PY=.venv/bin/python
 RUN=training/runs/gemma_v5_curriculum_df100_gemma4xl_v1
 

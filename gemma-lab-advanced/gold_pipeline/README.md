@@ -1,9 +1,17 @@
 # Gold-Set Generation Pipeline — Essential Bundle
 
+> **In this repo, only the docs are here.** The pipeline code is identical to scripts the
+> parent repo already tracks, so it was not copied twice: `scripts/summary_generation/run_pipeline.py`,
+> `scripts/synthetic_summary_runtime.py`, `scripts/build_natural_language_teacher_pool_v1.py`,
+> `scripts/promote_summary_run_release.py`, `scripts/merge_summary_releases.py` and
+> `scripts/materialize_natural_language_gold_milestone.py`. Prompts are under `prompts/synthetic_summary/`
+> and configs under `configs/synthetic_summary_generation/`. The corpus and gold-set data live in a
+> private storage bucket.
+
 A self-contained snapshot of the **natural-language summary** pipeline that produced
 the **994-row "gold set"** used to fine-tune `ibm-granite/granite-4.0-350m`.
 
-Extracted from `~/myApps/model-experiments/gemma-abstract-finetuning` on 2026-06-13.
+Extracted from the parent repo on 2026-06-13.
 This bundle holds the *essential, most up-to-date* parts of all five stages, the
 data at both ends, and the exact prompt versions the milestone actually drew from.
 

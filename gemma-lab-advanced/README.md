@@ -1,92 +1,87 @@
 # gemma-lab-advanced
 
-Isolated, self-contained lab for one question: **can gemma-3-270m be made viable
-for the arXiv "feed brief" task** (one faithful ~10–14-word sentence giving a
-reader a reason to open a paper), ideally small enough to ship.
+Can Gemma 3 270M write a faithful one-sentence brief for an arXiv paper, and still fit in
+under 100 MB on a phone? This lab says yes. The result is `faithful_only_q5`, a 97 MB model
+that matches IBM's Granite 4.0 350M (374 MB at 8-bit) on faithfulness.
 
-Deployment runtime target: **MLX-Swift**. We train here in **Python MLX** (LoRA SFT).
+A brief is one plain sentence, about 10 to 14 words, that tells a reader why they might open
+the paper. "Faithful" means every claim in it is backed by the abstract.
 
-Self-contained on purpose — this lab does **not** depend on the older
-`gemma-abstract-finetuning` repo at runtime. Its own venv (`.venv`), its own data
-(`gold_pipeline/`), its own runs. Keep it that way.
+## Result
+
+Same prompt, same MLX runtime, greedy decoding, blind judges. Scores are 0 to 3.
+
+| | faithful_only_q5 (Gemma) | Granite 4.0 350M q8 |
+|---|---|---|
+| Size on disk | **97 MB** | 374 MB |
+| Faithful, 240 typical papers | 2.08 | 2.20 |
+| Faithful, 150 hard papers | 2.09 | 2.24 |
+| Hallucinated briefs, typical / hard | 3.3% / 9.4% | 3.8% / 8.1% |
+| Readable, typical papers | 1.71 | 1.80 |
+| Hook, typical papers | 1.09 | 1.37 |
+
+The faithfulness gaps (-0.11 and -0.14) sit inside their 95% bootstrap intervals, so the two
+models tie. So do the hallucination rates. Granite keeps a real lead on hook, the score for how
+much a brief makes you want to read on. Three attempts to close that gap moved hook by nothing,
+and two of them cost faithfulness, so the lab treats it as a limit of model size and leaves it.
+Full numbers: [`quant_probe/VOCAB_STRIP_FINDINGS.md`](quant_probe/VOCAB_STRIP_FINDINGS.md) (top
+section). The verdict and reasoning: [`CONCLUSION.md`](CONCLUSION.md).
+
+## How
+
+1. **Cut the vocabulary.** Gemma has a 262k-token vocabulary, and its tied embeddings are 63%
+   of the weights. Tokenizing all 3.07M arXiv titles and abstracts showed 55% of those tokens
+   never appear. The cut keeps tokens found in at least 100 papers, plus the byte alphabet and
+   every BPE merge parent needed to rebuild them, so any input still tokenizes. That takes the
+   model from 268M to about 136M parameters. Code: `quant_probe/strip_vocab.py`, checked by
+   `quant_probe/test_strip_tokenizer.py`.
+2. **Distill for faithfulness, not flair.** A larger Gemma (gemma-4-26b-a4b-qat, served
+   locally by LM Studio, prompt only) wrote plain briefs for recent papers. The same teacher,
+   in a fresh context, checked each claim against the abstract, repaired what it could and
+   dropped the rest: 5,182 rows. Teacher and student are both Gemma, so the license chain stays
+   simple. Code: `quant_probe/distill/`.
+3. **Fine-tune with LoRA on a MacBook.** Rank 16 on attention and MLP layers, in MLX, trained
+   straight onto the cut model so it learns the new tokenization at the same time. Config:
+   `training/configs/faithful_df100_stage1.yaml`.
+4. **Quantize to 5 bits** (group size 64). 8-bit and 5-bit both stay close to full precision.
+   4-bit loses too much, even with quantization-aware LoRA. Details: `quant_probe/QUANT_FINDINGS.md`.
+
+What made the difference was step 2. Earlier rounds trained on catchier targets and then
+drilled a "punchy" voice on top. At 270M parameters that teaches the model to invent a payoff
+the abstract never states. Plain targets and no voice stage gave +0.31 faithfulness over the
+previous best Gemma build, at the same size.
+
+## How it was judged
+
+- Two held-out sets: 240 recent papers drawn like the live feed, and 150 hard papers that
+  contain words the vocabulary cut has to break into pieces.
+- Each brief is scored for faithful, readable and hook by two independent blind judges
+  (Claude subagents) against the abstract alone. Briefs are anonymized and shuffled per
+  paper. Rubric: `quant_probe/judge3way_condhook/RUBRIC.md`.
+- Paired per-paper deltas with bootstrap 95% intervals. The two judges gave the same
+  faithfulness score 71% to 80% of the time.
+- The harness is reusable: `quant_probe/gen_faith_vs_granite.sh`, `build_hg_shards.py`,
+  `aggregate_hg.py`.
 
 ## Layout
 
 ```
-gold_pipeline/          The 994-row "briefs" gold set + the pipeline that made it.
-                        Data actually used: gold_pipeline/05_milestone_assembly/
-                        gold_set/mlx_lora/title_abstract_chat_gemma_270m_it_abstract_to_feed_blurb_v5
-                        (894 train / 50 valid / 50 test, chat format).
-eval_v5_vs_granite/     Round 1: read of the pre-existing shipped-era gemma v5
-                        adapter vs shipped Granite q8. See its FINDINGS.md.
-training/               LoRA SFT runs done in THIS lab.
-  configs/              one yaml per run.
-  runs/<name>/          adapters/ + logs + per-run notes.
-.venv/                  python3.12 + mlx-lm (pinned). The only interpreter used here.
+CONCLUSION.md          the answer, and why the hook gap was left alone
+HISTORY.md             the running lab log, as written during the work
+SPEC_*.md              spec for the last experiment (grounded subject-fronting; null result)
+recent_briefs_*.md     sample briefs from both models on recent papers
+eval_v5_vs_granite/    round 1: the first Gemma vs Granite read, and its harness
+quant_probe/           vocabulary cut, quantization, and every judged round
+  distill/             the teacher pipeline: gather, generate, verify, repair, build
+training/              LoRA configs, train scripts, and per-run notes
+gold_pipeline/         notes on the 994-row human-style gold set (code is in ../scripts)
 ```
 
-## Status: ACTIVE (2026-06-16) — gemma IS the product; Granite is only a reference yardstick. **HEADLINE: `faithful_only_q5` (97 MB) is statistically TIED with the 374 MB Granite q8 on faithfulness — same-runtime, blind, double-judged head-to-head (faith−granite −0.11 repr / −0.14 stress, both NS; hallucination tied). Granite (3.9× larger) keeps only a hook edge (+0.27 sig), the one capacity-pinned dimension. The founding ~0.3–0.5 faithfulness gap to Granite is closed at 1/4 the size.** See VOCAB_STRIP_FINDINGS top section + `aggregate_hg.py`. NEW best artifact: `faithful_only_q5` (97 MB) — faithfulness-first distilled grounding, NO voice stage. Beats prior candidate `recovered_df100_q5` on faithfulness **+0.31 repr / +0.35 stress (sig)**, hallucination ~½–⅓, readability +0.25; small hook cost −0.07. See `quant_probe/VOCAB_STRIP_FINDINGS.md` (top section). [Round 6 hooky-distillation backfired −0.21; fixed by faithfulness-first data + dropping the voice stage.] Stage-2 voice-drilling confirmed harmful THREE ways (human gold; a fresh faith-gated gemma style set: −0.6/−0.75 faith, 4–5× halluc, +0 hook; and a low-LR rerun of that style set at 1.5e-6 which recovered only noise — damage isn't dose-proportional, the drill teaches the wrong thing) → hook is capacity-pinned ~1.0; ship grounding-only.
-Three rigorous double-judged rounds (240 representative + 150 strip-stress papers, blind, bootstrap
-CIs). Granite q8 (374 MB) sits at faith ~2.31 as a fixed ruler — **not a ship candidate**. Gemma:
-- gemma q5+DF≥100+recovery (98 MB): repr **1.90**, stress 1.81  ← **best sub-100 MB; ship this**
-- gemma q5+DF≥50+recovery (103 MB): repr 1.83, stress 1.81  ← dominated (= DF≥100, bigger, >100 MB)
-- gemma q5+DF≥25 (115 MB, no retrain): repr 1.76, stress **1.98**  ← best on rare-token; quality play if size relaxes
-- gemma q4-QLoRA+DF≥100 (88 MB): repr 1.76 — dominated by DF≥100-q5
+## Not in this repo
 
-**Key findings (rounds 2→3):** strip level trades by population — lighter DF≥25 wins rare-token
-papers, heavier+recovery wins typical ones. The recovery fine-tune is **redistribution, not gain**
-(≈+0.14 typical / −0.17 rare; round-2 "free +0.15 lever" claim WALKED BACK). DF≥50+recovery =
-DF≥100+recovery statistically → no niche, dropped. **All gemma variants cluster ~1.76–1.90 on the
-feed; strip/recovery knobs move <0.15, mostly noise — the base model is the ceiling, so the choice
-is size-driven.** MLX-Swift QLoRA sidecar verified. Dead-token trim free, default. Best artifact:
-`quant_probe/recovered_df100_q5/` (98 MB).
+Paper pools, generated briefs, judge outputs, model weights and the Python venv. They live in
+a private storage bucket. The scripts still name the paths they used, so they document the
+work but will not run on a fresh clone without that data.
 
-**Round 4 — DF≥100 improvement (cheap-knobs batch, all rejected):** full-FT is *worse* than LoRA
-(−0.184 sig; overfits, LoRA regularizes); faithfulness-first prompt does nothing (+0.05 ns); q5 has
-~0.13 headroom to bf16 but it's uncapturable <100 MB (transformer is 70% of params post-strip). Garbling
-is NOT strip-induced. Confirms: knobs can't move it, **base model is the ceiling. Only remaining lever =
-data track** (distillation / grounding-objective fix / hard-negatives). See VOCAB_STRIP_FINDINGS round 4.
-
-
-Round 4 (curriculum) produced the best gemma yet (~0.2–0.3 below shipped Granite on
-faithfulness). Quant probe (`quant_probe/QUANT_FINDINGS.md`): **q8 and q5 both hold
-(≈bf16); the cliff is q5→q4, not q8→q5** — better than the old-gemma prior. So a
-vocab-stripped q5 gemma projects to ~100 MB (~3.7× smaller than shipped Granite q8)
-at near-Granite faithfulness. Vocab-strip feasibility now measured on the FULL arXiv
-distribution (3.07M papers, via composer-vps): 54.9% of vocab is never used; a
-lossless DF>=1 strip is 268M->180M (q5 124MB, behaviorally identical, no retrain),
-DF>=50 hits the ~98MB moonshot at 99.85% coverage. See `quant_probe/VOCAB_STRIP_FINDINGS.md`.
-Next: build the strip (slice + remap tokenizer), re-quantize, re-judge.
-
-## Findings so far
-
-- **Round 1 (eval of the shipped-era v5 adapter):** gemma learns brief *shape*
-  (length, tone, one sentence) but not *grounding* — it hard-hallucinates ~3× more
-  than shipped Granite at full precision, while reading just as fluently.
-  Faithfulness, not fluency, is the gap. See `eval_v5_vs_granite/FINDINGS.md`.
-- **Round 2 (`gemma_v5_briefs_lora_attn_mlp_r16_v1`):** expanding the LoRA to the
-  MLP blocks (same data) recovered a real chunk of faithfulness — best checkpoint
-  (ckpt400) cut hard hallucinations 7→4 and closed ~63% of the faithfulness gap to
-  shipped granite. Residual failures concentrate in physics/math + causal-inversion
-  abstracts. See `training/runs/gemma_v5_briefs_lora_attn_mlp_r16_v1/NOTE.md`.
-- **Round 3 (`gemma_v5_multitask_summary10k_brief994_v1`) — NEGATIVE:** dual-prompt
-  multi-task (import grounding from the 10k summary DB behind a 'summary' prompt,
-  keep brief voice on its own prompt) did **not** improve brief faithfulness — best
-  checkpoint tied single-task within noise. Token metrics (val loss, ppl) improved
-  while judged faithfulness didn't. Errors that survive attn→MLP→+11× grounding data
-  (esp. papers 45/31/17) read as a base-model capability ceiling, not a coverage gap.
-  gemma plateaus ~0.3–0.5 below shipped granite at full precision. See that run's NOTE.md.
-- **Round 4 (`gemma_v5_curriculum_v1`) — best gemma yet:** two-stage curriculum
-  (grounding on 10k summaries *in brief mode*, then voice-drill on the 994) beat the
-  round-2 winner — hallucinations 5→3, total 5.06→5.38 in-pass, ~0.3 below granite.
-  First lever to improve on round 2. Hard core (31/45/48) still fails. Reopens gemma
-  pending a quantization probe. See `training/runs/gemma_v5_curriculum_v1/NOTE.md`.
-
-## Conventions
-
-- Run names: `gemma_v5_briefs_<recipe>_v<n>`. One config yaml per run under
-  `training/configs/`, output under `training/runs/<name>/`.
-- Evaluate every run with the round-1 harness (50-row held-out test split, blind
-  multi-judge) so numbers stay comparable across runs.
-- Pick checkpoints by **test-set generation quality, not validation loss**
-  (round-1 showed val loss mis-ranks checkpoints for this task).
+To run anything: Apple Silicon, Python 3.12 and `mlx-lm`. Shell scripts move to the lab root
+themselves. The teacher scripts expect LM Studio at `127.0.0.1:1234`.

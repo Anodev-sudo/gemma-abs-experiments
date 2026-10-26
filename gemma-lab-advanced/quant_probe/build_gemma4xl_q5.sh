@@ -2,7 +2,7 @@
 # Fuse the gemma4xl curriculum stage2 adapter into the stripped DF100 base, then q5.
 # Mirrors the recovered_df100_q5 recipe (LoRA fuse carries the compact tokenizer).
 set -euo pipefail
-cd /Users/alanwren/myApps/model-experiments/gemma-lab-advanced
+cd "$(dirname "$0")/.."   # lab root
 PY=.venv/bin/python
 BASE=quant_probe/stripped_base_df100
 ADAPT=training/runs/gemma_v5_curriculum_df100_gemma4xl_v1/stage2/adapters

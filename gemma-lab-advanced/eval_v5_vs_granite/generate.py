@@ -21,7 +21,7 @@ from mlx_lm import load, generate
 from mlx_lm.sample_utils import make_sampler
 
 LAB = Path(__file__).resolve().parent.parent  # gemma-lab-advanced root
-SRC = Path.home() / "myApps/model-experiments/gemma-abstract-finetuning"
+SRC = Path(__file__).resolve().parents[2]  # parent repo root
 TEST = (
     LAB
     / "gold_pipeline/05_milestone_assembly/gold_set/mlx_lora"

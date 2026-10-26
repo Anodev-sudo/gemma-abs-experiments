@@ -1,7 +1,7 @@
 #!/bin/bash
 # Refine the 5314 verified briefs to strong faithfulness, then rebuild the training dataset.
 set -euo pipefail
-cd /Users/alanwren/myApps/model-experiments/gemma-lab-advanced
+cd "$(dirname "$0")/../.."   # lab root
 PY=.venv/bin/python
 D=quant_probe/distill
 

@@ -3,7 +3,7 @@
 #   A faithful-only  = fuse stage-1 grounding adapter -> q5
 #   B faithful->style = train stage-2 voice on top, fuse stage-2 adapter -> q5
 set -euo pipefail
-cd /Users/alanwren/myApps/model-experiments/gemma-lab-advanced
+cd "$(dirname "$0")/.."   # lab root
 PY=.venv/bin/python
 BASE=quant_probe/stripped_base_df100
 RUN=training/runs/gemma_v5_curriculum_df100_faithful_v1

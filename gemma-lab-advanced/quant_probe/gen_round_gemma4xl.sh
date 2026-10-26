@@ -2,11 +2,11 @@
 # Generate briefs for the gemma4xl-vs-baseline-vs-granite verdict, all 3 models x 2 eval sets,
 # identical BRIEF prompt + temp 0. Clean labels: r6_{model}_{set}.
 set -euo pipefail
-cd /Users/alanwren/myApps/model-experiments/gemma-lab-advanced
+cd "$(dirname "$0")/.."   # lab root
 PY=.venv/bin/python
 NEW=quant_probe/gemma4xl_df100_q5
 BASE=quant_probe/recovered_df100_q5
-GRAN=$HOME/myApps/model-experiments/gemma-abstract-finetuning/hf_bucket/experiments/mlx_lora/granite_4_0_350m_v5_ckpt425_mlx_swift_q8_export_v1/fused_q8_g64
+GRAN=${GRAN:-../hf_bucket/experiments/mlx_lora/granite_4_0_350m_v5_ckpt425_mlx_swift_q8_export_v1/fused_q8_g64}   # Granite export in the parent repo (data not in git)
 
 gen () { $PY quant_probe/gen_threeway.py "$1" "$2" --model "$3"; }
 

@@ -4,7 +4,7 @@
 # endpoint is down, it WAITS and re-probes rather than burning failed launches. Safe to
 # start while the teacher is offline -- it will auto-resume the moment it comes back.
 set -uo pipefail
-cd /Users/alanwren/myApps/model-experiments/gemma-lab-advanced
+cd "$(dirname "$0")/../.."   # lab root
 PY=.venv/bin/python
 D=quant_probe/distill
 OUT=$D/cond_hook/relabeled.jsonl

@@ -2,7 +2,7 @@
 # Full distillation run: generate -> verify -> build_dataset, against the LMStudio gemma-4 teacher.
 # Resumable: generate.py --resume skips arxiv_ids already in cand.jsonl.
 set -euo pipefail
-cd /Users/alanwren/myApps/model-experiments/gemma-lab-advanced
+cd "$(dirname "$0")/../.."   # lab root
 D=quant_probe/distill
 NAME=gemma4xl_briefground_v1
 

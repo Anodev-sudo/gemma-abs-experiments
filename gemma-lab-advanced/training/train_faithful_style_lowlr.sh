@@ -2,7 +2,7 @@
 # Low-LR (1.5e-6) style voice drill on faithful grounding -> faithful_style_lowlr_q5.
 # Eval cheaply on the 60-paper held-out faith testset for a 3-way vs faith_only & full-LR style.
 set -euo pipefail
-cd /Users/alanwren/myApps/model-experiments/gemma-lab-advanced
+cd "$(dirname "$0")/.."   # lab root
 PY=.venv/bin/python
 BASE=quant_probe/stripped_base_df100
 RUN=training/runs/gemma_v5_curriculum_df100_faithful_style_lowlr_v1

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Regenerate ALL 5314 targets faithfulness-first (v2 prompt) + verify gate, then rebuild dataset.
 set -euo pipefail
-cd /Users/alanwren/myApps/model-experiments/gemma-lab-advanced
+cd "$(dirname "$0")/../.."   # lab root
 PY=.venv/bin/python
 D=quant_probe/distill
 

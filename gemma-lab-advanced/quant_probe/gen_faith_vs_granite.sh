@@ -3,10 +3,10 @@
 # Both via gen_threeway.py: identical BRIEF prompt, temp 0, max 40 tok, MLX load+generate.
 # Regenerated fresh in one pass so the prompt version is provably identical.
 set -euo pipefail
-cd /Users/alanwren/myApps/model-experiments/gemma-lab-advanced
+cd "$(dirname "$0")/.."   # lab root
 PY=.venv/bin/python
 FAITH=quant_probe/faithful_only_q5
-GRAN=$HOME/myApps/model-experiments/gemma-abstract-finetuning/hf_bucket/experiments/mlx_lora/granite_4_0_350m_v5_ckpt425_mlx_swift_q8_export_v1/fused_q8_g64
+GRAN=${GRAN:-../hf_bucket/experiments/mlx_lora/granite_4_0_350m_v5_ckpt425_mlx_swift_q8_export_v1/fused_q8_g64}   # Granite export in the parent repo (data not in git)
 
 gen () { $PY quant_probe/gen_threeway.py "$1" "$2" --model "$3"; }
 

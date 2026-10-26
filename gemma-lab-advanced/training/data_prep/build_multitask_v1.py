@@ -16,7 +16,7 @@ import argparse, json, random
 from pathlib import Path
 
 LAB = Path(__file__).resolve().parent.parent.parent
-SIB = Path.home() / "myApps/model-experiments/gemma-abstract-finetuning"
+SIB = Path(__file__).resolve().parents[3]  # parent repo root
 BRIEF_SPLIT = (LAB / "gold_pipeline/05_milestone_assembly/gold_set/mlx_lora"
                / "title_abstract_chat_gemma_270m_it_abstract_to_feed_blurb_v5")
 WIDE = SIB / "hf_dataset/releases/recent_3y_balanced_10746_v1/training_rows.jsonl"
