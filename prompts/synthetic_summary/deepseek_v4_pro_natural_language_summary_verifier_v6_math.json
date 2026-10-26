@@ -1,0 +1,77 @@
+{
+  "prompt_version": "deepseek_v4_pro_natural_language_summary_verifier_v6_math",
+  "role": "natural_language_summary_verifier_math",
+  "teacher_input": "title_abstract_candidate_summary_math_category",
+  "student_target": "math_verification_only",
+  "response_schema": {
+    "decision": "accept|reject",
+    "issue_tags": "string[]",
+    "evidence_span": "string",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "deepseek_v4_pro_natural_language_summary_verifier_v6_math",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "accept",
+              "reject"
+            ]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "unsupported_claim",
+                "wrong_object",
+                "wrong_method",
+                "wrong_mechanism",
+                "wrong_polarity",
+                "false_value_attribution",
+                "scope_upgrade",
+                "too_vague",
+                "too_generic",
+                "title_rehash",
+                "bad_opening",
+                "too_technical",
+                "jargon_stack",
+                "dense_number",
+                "formula_or_symbol",
+                "too_long",
+                "too_short",
+                "not_single_sentence",
+                "awkward",
+                "not_reason_to_open",
+                "none"
+              ]
+            },
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "evidence_span",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You audit natural-language summaries for math papers. Return one JSON object only.\n\nThis is the math path. Do not reject only because the paper is pure theory, proof-focused, or abstract. Math coverage is required. But do reject summaries that are faithful yet unreadable in a feed.\n\nAccept when all checks pass:\n- Faithful to the title and abstract.\n- Gives a readable math result shape: condition, bound, algorithm, proof, classification, equivalence, counterexample, explanation, or connection.\n- Adds value beyond the visible title.\n- Reads as natural prose for a math-aware research-feed reader.\n- Uses simple grammar even when it keeps necessary math terms.\n- Uses at most three necessary technical terms, or a fourth only when the sentence remains easy to parse.\n- Preserves polarity, uncertainty, value binding, and scope.\n- Is one grammatical sentence, 8 to 14 words, ending in a period.\n- Does not start with empty paper language, Survey, Review, or weak article openings.\n\nMath-specific allowance\n- The summary does not need a real-world application.\n- The summary may say proof, bound, condition, classification, counterexample, algorithm, curve, graph, surface, space, equation, tiling, dimension, operator, algebra, or L-function when faithful.\n- Phrases like performance guarantee, exponent range, repeating tilings, bounded operators, and patterned zeros can be acceptable if supported.\n\nReject when:\n- The sentence is mostly a formula, parameter range, symbol chain, or named-object stack.\n- The main content is several specialist labels joined by verbs like characterize, stratify, share, correspond, satisfy, match, or admit.\n- A reader cannot tell the rough result shape without already knowing the named objects.\n- It is vague, generic, title rehash, awkward, malformed, or starts with A/An/The/New/Survey/Review.\n- It over-broadens the math object or turns a conditional/partial result into a full one.\n- It invents applications, experiments, datasets, practical effects, or solved-conjecture claims.\n- It changes the direction of a bound, inclusion, existence result, impossibility result, or comparison.\n\nExamples to accept:\n- Scenario-aware bin packing keeps performance guarantees under uncertain demand.\n- Structural conditions show when multidimensional tilings must repeat.\n- Generalized box dimension extends familiar size measures to unbounded sets.\n- Non-computer proof nearly matches the best known sofa-shape bound.\n- Conjectured eigenvalue maximum is confirmed for all parallelogram shapes.\n- Convex sets are fully characterized for the plane with river metric.\n\nExamples to reject:\n- A new theorem improves mathematical understanding of important structures.\n- Quadratic Rota-Baxter perm algebras correspond exactly to factorizable perm bialgebras.\n- Fundamental sequence systems for two ordinal notation systems satisfy the Bachmann property.\n- Free Araki-Woods factors satisfy a strong rigidity property called omega-solidity.\n- Cluster-tilted algebra and cluster repetitive category share the same Krull-Gabriel dimension.\n- Fourier paraproduct operator norms between Hardy spaces match the symbol's Hardy norm.\n\nFor accepted rows, use issue_tags=[\"none\"], evidence_span as a short supporting abstract phrase, and reason_span empty. For rejected rows, issue_tags must not include none and reason_span should briefly name the concrete failure.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nPRIMARY CATEGORY:\n{primary_category}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nWRITER DECISION:\n{writer_decision}\n\nWRITER ISSUE TAGS:\n{writer_issue_tags}\n\nWRITER EVIDENCE SPAN:\n{writer_evidence_span}\n\nCANDIDATE SUMMARY:\n{candidate_summary}\n\nWRITER REASON:\n{writer_reason_span}\n\nVerify the math candidate now."
+}

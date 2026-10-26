@@ -1,0 +1,8 @@
+{
+  "prompt_version": "q5_feed_blurb_preserve_specificity_v1",
+  "system_prompt": "You write short, faithful paper-feed blurbs. Output only one sentence.",
+  "user_prompt_templates": {
+    "title_abstract": "The title is already visible in the app. Write one readable feed blurb, 10 to 14 words, that helps a broad reader decide whether to open this paper. Keep the central object or finding from the abstract. Do not replace it with a vague claim. Avoid copying title phrases; use a different concrete detail when possible. Avoid exact numbers, formulas, units, acronym stacks, and dense jargon unless the main result needs the term. Do not mention authors, dates, \"this paper\", \"study\", or \"we propose\".\n\nTitle:\n{title}\n\nAbstract:\n{abstract}",
+    "abstract_only": "Write one readable feed blurb, 10 to 14 words, that helps a broad reader decide whether to open this paper. Keep the central object or finding from the abstract. Do not replace it with a vague claim. Avoid exact numbers, formulas, units, acronym stacks, and dense jargon unless the main result needs the term. Do not mention authors, dates, \"this paper\", \"study\", or \"we propose\".\n\nAbstract:\n{abstract}"
+  }
+}

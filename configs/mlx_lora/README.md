@@ -29,6 +29,13 @@ Current configs:
   - Student input: `title_abstract`
   - Goal: apples-to-apples follow-up to the 270M run when we want to test
     whether the remaining errors are mostly model-size limited
+- `granite_4_0_350m_natural_language_994_title_abstract_feed_blurb_v5_lora_lr5e6_v1.yaml`
+  - Base model: `ibm-granite/granite-4.0-350m`
+  - Dataset: strict 994-row natural-language gold release, converted to MLX
+    `chat` format with the feed-blurb v5 prompt
+  - Student input: `title_abstract`
+  - Goal: lateral 350M architecture check using the deployment-style
+    title+abstract feed-blurb prompt
 - `gemma_3_270m_it_title_abstract_10746_continue_from_1400_v1.yaml`
   - Base model: `google/gemma-3-270m-it`
   - Dataset: merged `10,746`-row release, converted to MLX `chat` format

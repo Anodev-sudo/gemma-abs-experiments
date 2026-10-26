@@ -1,0 +1,48 @@
+# Fresh LoRA burn-in on deterministic high-scoring rows from the old 10,746
+# release, recast into the current title+abstract feed-blurb v5 prompt.
+# Run with:
+#   HF_HOME=hf_bucket/experiments/mlx_lora/.hf-home \
+#   hf_bucket/experiments/mlx_lora/runtime/py312/bin/python \
+#     -m mlx_lm.lora \
+#     --config configs/mlx_lora/gemma_3_270m_it_natural_language_10746_heuristic3000_burnin_v1_lr8e6.yaml \
+#     --mask-prompt
+
+model: "google/gemma-3-270m-it"
+
+train: true
+fine_tune_type: lora
+optimizer: adamw
+
+data: "hf_bucket/experiments/mlx_lora/gemma_3_270m_it_natural_language_10746_heuristic3000_goldfinish_v1/dataset_heuristic3000_title_abstract_feed_blurb_v5"
+
+seed: 20260527
+num_layers: -1
+
+batch_size: 4
+iters: 800
+
+val_batches: -1
+learning_rate: 8e-6
+steps_per_report: 10
+steps_per_eval: 100
+grad_accumulation_steps: 1
+
+resume_adapter_file: null
+adapter_path: "hf_bucket/experiments/mlx_lora/gemma_3_270m_it_natural_language_10746_heuristic3000_goldfinish_v1/burnin_lr8e6"
+save_every: 100
+
+test: true
+test_batches: -1
+
+max_seq_length: 1024
+grad_checkpoint: false
+
+lora_parameters:
+  keys:
+    - "self_attn.q_proj"
+    - "self_attn.k_proj"
+    - "self_attn.v_proj"
+    - "self_attn.o_proj"
+  rank: 16
+  scale: 10.0
+  dropout: 0.0

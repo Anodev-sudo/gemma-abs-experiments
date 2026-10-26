@@ -1,0 +1,115 @@
+{
+  "prompt_version": "deepseek_v4_pro_natural_language_summary_writer_v16_math",
+  "role": "natural_language_summary_writer_math",
+  "teacher_input": "title_abstract_math_category",
+  "student_target": "abstract_only_plain_language_math_feed_hook",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "plain_takeaway": "string",
+    "technical_terms_used": "string[]",
+    "naturalness_risk": "none|too_jargony|title_rehash|too_vague|too_generic|forced|unsupported",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "deepseek_v4_pro_natural_language_summary_writer_v16_math",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "rewrite",
+              "drop"
+            ]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "plain_language",
+                "concrete_anchor_preserved",
+                "necessary_term_kept",
+                "jargon_simplified",
+                "title_overlap_avoided",
+                "dense_number_abstracted",
+                "formula_avoided",
+                "polarity_preserved",
+                "value_binding_preserved",
+                "scope_softened",
+                "reason_to_open",
+                "source_too_vague",
+                "too_jargony",
+                "title_rehash",
+                "too_generic",
+                "forced",
+                "unsupported",
+                "none"
+              ]
+            },
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "plain_takeaway": {
+            "type": "string"
+          },
+          "technical_terms_used": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 4,
+            "uniqueItems": true
+          },
+          "naturalness_risk": {
+            "type": "string",
+            "enum": [
+              "none",
+              "too_jargony",
+              "title_rehash",
+              "too_vague",
+              "too_generic",
+              "forced",
+              "unsupported"
+            ]
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "word_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 14
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "plain_takeaway",
+          "technical_terms_used",
+          "naturalness_risk",
+          "evidence_span",
+          "summary",
+          "word_count",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You write natural-language summaries for math papers in a mobile research feed. Return one JSON object only.\n\nThis is the math path. Do not drop a paper just because it is pure theory. Do drop it when the only faithful sentence is a stack of specialist names.\n\nProduct goal\n- The title, authors, and date are already visible.\n- The summary should tell a math-aware feed reader what kind of result the paper adds.\n- It does not need a real-world application or the whole theorem.\n- It should be a plain result-shape sentence: condition, bound, algorithm, proof, classification, equivalence, counterexample, explanation, or connection.\n\nNatural-language bar for math\n- Keep the mathematical object only when it is needed for faithfulness.\n- Use ordinary verbs and grammar to carry the sentence.\n- Use up to three necessary math terms. A fourth term is allowed only when the sentence is still easy to parse.\n- technical_terms_used must list only terms that appear in the final sentence.\n- plain_takeaway must say the result shape in ordinary words, not repeat a named-object chain.\n- If plain_takeaway cannot be written without copying specialist terms, choose drop.\n\nHard style contract\n- One natural sentence.\n- 8 to 14 whitespace-separated words, inclusive. Never write 15 words.\n- Aim for 9 to 12 words.\n- End with exactly one period.\n- Do not start with A, An, The, New, Study, Survey, Review, Paper, Report, This paper, The paper, The authors, The work, We, In this work, or In this paper.\n- Start with the mathematical object, result, or action.\n- Avoid formulas, LaTeX, parameter ranges, equation strings, and symbol-heavy notation.\n- Avoid dense named-object chains, even when they are faithful.\n- Avoid title rephrases where the title's nouns do most of the work.\n- Avoid generic phrases alone: provable guarantees, better results, useful framework, new insights.\n\nFaithfulness rules\n- Preserve polarity, uncertainty, scope, and value binding.\n- Do not replace a precise math object with a different neighboring object.\n- Do not claim a conjecture is solved unless the abstract says so.\n- Do not turn a conditional result into an unconditional one.\n- Do not invent applications, experiments, data, or practical effects.\n- If a result is heuristic, empirical, conditional, asymptotic, or partial, preserve that softness.\n\nGood math summaries\n- Scenario-aware bin packing keeps performance guarantees under uncertain demand.\n- Structural conditions show when multidimensional tilings must repeat.\n- Generalized box dimension extends familiar size measures to unbounded sets.\n- Non-computer proof nearly matches the best known sofa-shape bound.\n- Elliptic-curve oscillations may come from patterned zeros in related L-functions.\n- Conjectured eigenvalue maximum is confirmed for all parallelogram shapes.\n- Convex sets are fully characterized for the plane with river metric.\n\nBad math summaries\n- Fundamental sequence systems for two ordinal notation systems satisfy the Bachmann property.\nReason: named-object chain; no readable result shape.\n\n- Free Araki-Woods factors satisfy a strong rigidity property called omega-solidity.\nReason: explains one specialist term with another.\n\n- Cluster-tilted algebra and cluster repetitive category share the same Krull-Gabriel dimension.\nReason: mostly title nouns and specialist labels.\n\n- Fourier paraproduct operator norms between Hardy spaces match the symbol's Hardy norm.\nReason: too compressed for feed reading.\n\n- Survey classifies dimension-free Nullstellensatze for noncommutative polynomials by vanishing type.\nReason: banned opening and dense specialist terms.\n\nDrop when\n- The only faithful summary would be a formula, parameter range, or symbol chain.\n- The only faithful summary is a list of named objects with no readable result shape.\n- The abstract is too vague to identify the result shape.\n- A plain version would require changing the mathematical object or overclaiming the result.\n\nOutput rules\n- For rewrite, naturalness_risk must be none.\n- For rewrite, plain_takeaway must state the result shape in ordinary words.\n- For rewrite, evidence_span must support the final claim.\n- For rewrite, technical_terms_used should list math terms that remain in the final sentence.\n- For drop, summary and evidence_span must be empty and word_count must be 0.\n- For drop, naturalness_risk must identify the reason when style is the blocker.\n- For drop, reason_span should briefly explain the irreducible problem.\n- Before answering, count whitespace-separated words in the summary.\n- word_count must equal the whitespace-separated word count of summary.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nPRIMARY CATEGORY:\n{primary_category}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nWrite a math natural-language feed summary, or drop it."
+}

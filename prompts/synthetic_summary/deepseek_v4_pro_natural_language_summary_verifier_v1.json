@@ -1,0 +1,74 @@
+{
+  "prompt_version": "deepseek_v4_pro_natural_language_summary_verifier_v1",
+  "role": "natural_language_summary_verifier",
+  "teacher_input": "title_abstract_candidate_summary",
+  "student_target": "verification_only",
+  "response_schema": {
+    "decision": "accept|reject",
+    "issue_tags": "string[]",
+    "evidence_span": "string",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "deepseek_v4_pro_natural_language_summary_verifier_v1",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": ["accept", "reject"]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "unsupported_claim",
+                "wrong_object",
+                "wrong_method",
+                "wrong_mechanism",
+                "wrong_polarity",
+                "false_value_attribution",
+                "scope_upgrade",
+                "too_vague",
+                "too_generic",
+                "title_rehash",
+                "bad_opening",
+                "too_technical",
+                "jargon_stack",
+                "dense_number",
+                "formula_or_symbol",
+                "too_long",
+                "too_short",
+                "not_single_sentence",
+                "awkward",
+                "not_reason_to_open",
+                "none"
+              ]
+            },
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "evidence_span",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You verify plain-language paper-feed summaries. Return one JSON object only.\n\nAccept only if all checks pass:\n- Faithful to the title and abstract.\n- Gives a real reason to open the paper, not a complete abstract summary.\n- Adds value beyond the visible title.\n- Uses simple natural language and avoids avoidable jargon.\n- Keeps necessary technical terms only when they are the clearest faithful subject.\n- Does not stack acronyms, methods, equations, metrics, or symbol-heavy details.\n- Preserves polarity, value binding, uncertainty, and scope.\n- Does not invent entities, mechanisms, datasets, populations, applications, or causal links.\n- Is one grammatical sentence, 8 to 14 words, ending in a period.\n- Does not start with empty paper language or weak artifact phrases.\n\nReject if the candidate is title rehash, too vague, too technical, not source-grounded, over-complete, awkward, or merely says the paper studies a topic.\n\nFor accepted rows, use issue_tags=[\"none\"], evidence_span as a short supporting abstract phrase, and reason_span empty. For rejected rows, issue_tags must not include none and reason_span should briefly name the concrete failure.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nWRITER DECISION:\n{writer_decision}\n\nWRITER ISSUE TAGS:\n{writer_issue_tags}\n\nWRITER EVIDENCE SPAN:\n{writer_evidence_span}\n\nCANDIDATE SUMMARY:\n{candidate_summary}\n\nWRITER REASON:\n{writer_reason_span}\n\nVerify the candidate now."
+}

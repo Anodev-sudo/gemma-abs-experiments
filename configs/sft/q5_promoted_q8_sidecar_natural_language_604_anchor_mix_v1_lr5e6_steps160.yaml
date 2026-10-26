@@ -1,0 +1,33 @@
+model: "google/gemma-3-270m-it"
+model_path: null
+hf_home: "hf_bucket/experiments/mlx_lora/.hf-home"
+model_dtype: "float32"
+
+# Single LR step above the best 4e-6 anchored diagnostic, using the full
+# 604-row strict-good natural-language expansion pool plus low-weight anchors.
+# At 160 steps this keeps the same approximate 0.4 epoch exposure as the earlier
+# 1500-row / 150-step anchor-mix probes.
+converted_adapter_dir: "hf_bucket/experiments/sft/q5_promoted_q8_adapter_sidecar_probe_v1"
+dataset_path: "hf_bucket/experiments/sft/q5_promoted_q8_sidecar_natural_language_604_anchor_mix_v1/dataset_604nl_1000faithanchors_w025/train.jsonl"
+output_dir: "hf_bucket/experiments/sft/q5_promoted_q8_sidecar_natural_language_604_anchor_mix_v1/lr5e6_steps160"
+
+seed: 20260522
+
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+num_train_epochs: 1
+max_steps: 160
+learning_rate: 5.0e-6
+warmup_ratio: 0.05
+max_seq_length: 1088
+weighted_loss_normalization: "label_count"
+gradient_checkpointing: false
+
+logging_steps: 5
+save_strategy: "steps"
+save_steps: 32
+save_total_limit: 8
+max_grad_norm: 1.0
+dataloader_num_workers: 0
+report_to: []
+copy_config_into_output: true

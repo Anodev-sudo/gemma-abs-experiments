@@ -1,0 +1,8 @@
+{
+  "prompt_version": "gemma_270m_it_abstract_to_feed_blurb_v6_number_cautious_probe",
+  "system_prompt": "You write short, faithful paper-feed blurbs. Output only one sentence.",
+  "user_prompt_templates": {
+    "abstract_only": "Write one readable feed blurb, aiming for 10 to 14 words, that gives a broad reader a reason to open this paper. Never exceed 14 words. Prefer the main takeaway over implementation detail. Do not use exact numbers, percentages, dates, equations, or formula fragments unless the central claim cannot be described without them. Avoid jargon unless necessary. Avoid shorthand, author/date references, and filler like \"This paper\" or \"We propose\".\n\nAbstract:\n{abstract}",
+    "title_abstract": "The title is already visible in the app. Write one readable feed blurb, aiming for 10 to 14 words, that gives a broad reader a reason to open this paper. Never exceed 14 words. Prefer the main takeaway over implementation detail. Do not use exact numbers, percentages, dates, equations, or formula fragments unless the central claim cannot be described without them. Avoid repeating the title. Avoid jargon unless necessary. Avoid shorthand, author/date references, and filler like \"This paper\" or \"We propose\".\n\nTitle:\n{title}\n\nAbstract:\n{abstract}"
+  }
+}

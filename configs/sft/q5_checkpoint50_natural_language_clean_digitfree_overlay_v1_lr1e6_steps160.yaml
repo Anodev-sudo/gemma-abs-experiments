@@ -1,0 +1,32 @@
+model: "google/gemma-3-270m-it"
+model_path: null
+hf_home: "hf_bucket/experiments/mlx_lora/.hf-home"
+model_dtype: "float32"
+
+# Existing-data-only natural-language overlay from the previous q5-trained
+# checkpoint-50 lineage. This tests a different basin from the promoted q5/q8
+# sidecar without adding any newly generated labels.
+converted_adapter_dir: "hf_bucket/experiments/sft/q5_step2400_broad_reweighted_basin_v1/lr6e7/cleanup_after_ckpt2500/lr4e7/q8win_after_ckpt30/lr3e7_x3/checkpoint-50"
+dataset_path: "hf_bucket/experiments/sft/q5_checkpoint50_natural_language_clean_digitfree_overlay_v1/dataset_clean_digitfree_10to14_no_supdigit_v1/train.jsonl"
+output_dir: "hf_bucket/experiments/sft/q5_checkpoint50_natural_language_clean_digitfree_overlay_v1/lr1e6_steps160"
+
+seed: 20260603
+
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+num_train_epochs: 1
+max_steps: 160
+learning_rate: 1.0e-6
+warmup_ratio: 0.05
+max_seq_length: 1088
+weighted_loss_normalization: "label_count"
+gradient_checkpointing: false
+
+logging_steps: 5
+save_strategy: "steps"
+save_steps: 32
+save_total_limit: 8
+max_grad_norm: 1.0
+dataloader_num_workers: 0
+report_to: []
+copy_config_into_output: true

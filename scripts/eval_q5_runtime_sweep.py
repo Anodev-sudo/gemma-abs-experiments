@@ -96,6 +96,9 @@ def run_generation(
     label: str,
     port: int,
     force: bool,
+    prompt_spec: Path | None,
+    input_mode: str,
+    max_tokens: int,
 ) -> None:
     if output.exists() and force:
         output.unlink()
@@ -121,9 +124,15 @@ def run_generation(
         label,
         "--port",
         str(port),
+        "--input-mode",
+        input_mode,
+        "--max-tokens",
+        str(max_tokens),
         "--progress-every",
         "25",
     ]
+    if prompt_spec is not None:
+        cmd.extend(["--prompt-spec", str(prompt_spec)])
     print(f"[runtime-sweep] generating {label} on {eval_input}")
     subprocess.run(cmd, check=True)
 
@@ -258,6 +267,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--port", type=int, default=8120)
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--hard77-gate", action="store_true")
+    parser.add_argument("--prompt-spec", type=Path, default=None)
+    parser.add_argument("--input-mode", default="title_abstract")
+    parser.add_argument("--max-tokens", type=int, default=50)
     return parser.parse_args()
 
 
@@ -278,6 +290,9 @@ def main() -> None:
             label=args.external_label,
             port=args.port,
             force=args.force,
+            prompt_spec=args.prompt_spec,
+            input_mode=args.input_mode,
+            max_tokens=args.max_tokens,
         )
         summary = summarize_outputs(args.external_label, out, inputs)
         summaries.append(summary)
@@ -296,6 +311,9 @@ def main() -> None:
             label=label,
             port=args.port + (1 if args.external_lora else 0),
             force=args.force,
+            prompt_spec=args.prompt_spec,
+            input_mode=args.input_mode,
+            max_tokens=args.max_tokens,
         )
         summary = summarize_outputs(label, out, inputs)
         summaries.append(summary)
@@ -314,6 +332,9 @@ def main() -> None:
             label=label,
             port=args.port + index + (1 if args.external_lora else 0) + (1 if args.include_final else 0),
             force=args.force,
+            prompt_spec=args.prompt_spec,
+            input_mode=args.input_mode,
+            max_tokens=args.max_tokens,
         )
         summary = summarize_outputs(label, out, inputs)
         summaries.append(summary)

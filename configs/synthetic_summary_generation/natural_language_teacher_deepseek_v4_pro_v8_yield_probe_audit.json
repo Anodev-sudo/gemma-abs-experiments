@@ -1,0 +1,165 @@
+{
+  "input": {
+    "path": "hf_bucket/experiments/natural_language_teacher/deepseek_v4_pro_v7_batch2/source_candidates/natural_language_candidates.jsonl",
+    "candidate_prefix": "natural_language_teacher_deepseek_v4_pro_v8_yield_probe_audit",
+    "count_fields": [
+      "umbrella_category",
+      "primary_category"
+    ]
+  },
+  "output": {
+    "run_root": "hf_bucket/experiments/natural_language_teacher/deepseek_v4_pro_v8_yield_probe_audit",
+    "release_dir": "hf_dataset/releases/recent_3y_balanced_20000_natural_language_teacher_deepseek_v4_pro_v8_yield_probe_audit"
+  },
+  "writer": {
+    "prompt_path": "prompts/synthetic_summary/deepseek_v4_pro_natural_language_summary_writer_v8.json",
+    "writer_label": "deepseek_v4_pro_plain_language_v8",
+    "workers": 2,
+    "temperature": 0.15,
+    "max_output_tokens": 256,
+    "reasoning_effort": "none",
+    "response_format_mode": "schema",
+    "max_retries": 3,
+    "retry_backoff_seconds": 2.0,
+    "accepted_decisions": [
+      "rewrite"
+    ],
+    "allowed_issue_tags": [
+      "plain_language",
+      "concrete_anchor_preserved",
+      "necessary_term_kept",
+      "jargon_simplified",
+      "title_overlap_avoided",
+      "dense_number_abstracted",
+      "formula_avoided",
+      "polarity_preserved",
+      "value_binding_preserved",
+      "scope_softened",
+      "reason_to_open",
+      "source_too_vague",
+      "too_jargony",
+      "title_rehash",
+      "too_generic",
+      "forced",
+      "unsupported",
+      "none"
+    ],
+    "routes": [
+      {
+        "route_id": "deepseek_v4_pro_structured",
+        "model": "deepseek/deepseek-v4-pro",
+        "reasoning_effort": "none",
+        "response_format_mode": "schema"
+      },
+      {
+        "route_id": "deepseek_v4_pro_plain_json",
+        "model": "deepseek/deepseek-v4-pro",
+        "reasoning_effort": "none",
+        "response_format_mode": "plain_json"
+      }
+    ]
+  },
+  "reviewer": {
+    "prompt_path": "prompts/synthetic_summary/deepseek_v4_pro_natural_language_summary_verifier_v4.json",
+    "workers": 1,
+    "temperature": 0.0,
+    "max_output_tokens": 160,
+    "reasoning_effort": "none",
+    "response_format_mode": "schema",
+    "max_retries": 3,
+    "retry_backoff_seconds": 2.0,
+    "accepted_decisions": [
+      "accept"
+    ],
+    "allowed_issue_tags": [
+      "unsupported_claim",
+      "wrong_object",
+      "wrong_method",
+      "wrong_mechanism",
+      "wrong_polarity",
+      "false_value_attribution",
+      "scope_upgrade",
+      "too_vague",
+      "too_generic",
+      "title_rehash",
+      "bad_opening",
+      "too_technical",
+      "jargon_stack",
+      "dense_number",
+      "formula_or_symbol",
+      "too_long",
+      "too_short",
+      "not_single_sentence",
+      "awkward",
+      "not_reason_to_open",
+      "none"
+    ],
+    "routes": [
+      {
+        "route_id": "deepseek_v4_pro_structured",
+        "model": "deepseek/deepseek-v4-pro",
+        "reasoning_effort": "none",
+        "response_format_mode": "schema"
+      },
+      {
+        "route_id": "deepseek_v4_pro_plain_json",
+        "model": "deepseek/deepseek-v4-pro",
+        "reasoning_effort": "none",
+        "response_format_mode": "plain_json"
+      }
+    ],
+    "input_path": "hf_bucket/experiments/natural_language_teacher/deepseek_v4_pro_v8_yield_probe/materialized_release/selected_review_rows.jsonl"
+  },
+  "local_gates": {
+    "min_words": 8,
+    "max_words": 14,
+    "require_single_sentence": true,
+    "require_final_period": true,
+    "forbidden_prefixes": [
+      "this paper",
+      "the paper",
+      "the authors",
+      "the work",
+      "we ",
+      "in this work",
+      "in this paper",
+      "a ",
+      "an ",
+      "the ",
+      "new ",
+      "a method",
+      "a model",
+      "a framework",
+      "a survey",
+      "a review",
+      "a new"
+    ],
+    "max_title_overlap": 0.65,
+    "reject_formula_shorthand": true,
+    "reject_unsupported_summary_numbers": true,
+    "max_summary_numbers": 1,
+    "max_acronyms": 1,
+    "max_long_words": 2,
+    "long_word_min_chars": 14
+  },
+  "materialize": {
+    "source_split": "recent_3y_balanced_natural_language_teacher_deepseek_v4_pro_v8_yield_probe_audit",
+    "provenance_fields": [
+      "umbrella_category",
+      "selection_seed",
+      "selection_rank",
+      "writer_decision",
+      "writer_issue_tags",
+      "writer_evidence_span",
+      "writer_reason_span",
+      "writer_actual_word_count",
+      "writer_plain_takeaway",
+      "writer_technical_terms_used",
+      "writer_naturalness_risk",
+      "reviewer_decision",
+      "reviewer_issue_tags",
+      "reviewer_evidence_span",
+      "reviewer_reason_span"
+    ]
+  }
+}
