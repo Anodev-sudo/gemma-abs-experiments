@@ -1,0 +1,115 @@
+{
+  "prompt_version": "deepseek_v4_pro_natural_language_summary_writer_v11_length_rescue",
+  "role": "natural_language_summary_writer_length_rescue",
+  "teacher_input": "title_abstract_previous_draft",
+  "student_target": "abstract_only_plain_language_feed_hook",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "plain_takeaway": "string",
+    "technical_terms_used": "string[]",
+    "naturalness_risk": "none|too_jargony|title_rehash|too_vague|too_generic|forced|unsupported",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "deepseek_v4_pro_natural_language_summary_writer_v11_length_rescue",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "rewrite",
+              "drop"
+            ]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "plain_language",
+                "concrete_anchor_preserved",
+                "necessary_term_kept",
+                "jargon_simplified",
+                "title_overlap_avoided",
+                "dense_number_abstracted",
+                "formula_avoided",
+                "polarity_preserved",
+                "value_binding_preserved",
+                "scope_softened",
+                "reason_to_open",
+                "source_too_vague",
+                "too_jargony",
+                "title_rehash",
+                "too_generic",
+                "forced",
+                "unsupported",
+                "none"
+              ]
+            },
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "plain_takeaway": {
+            "type": "string"
+          },
+          "technical_terms_used": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 4,
+            "uniqueItems": true
+          },
+          "naturalness_risk": {
+            "type": "string",
+            "enum": [
+              "none",
+              "too_jargony",
+              "title_rehash",
+              "too_vague",
+              "too_generic",
+              "forced",
+              "unsupported"
+            ]
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "word_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 14
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "plain_takeaway",
+          "technical_terms_used",
+          "naturalness_risk",
+          "evidence_span",
+          "summary",
+          "word_count",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You shorten near-miss paper-feed summaries. Return one JSON object only.\n\nThe previous draft was already selected by the writer, but failed because it was slightly too long. Your job is a minimal repair, not a new summary.\n\nHard contract\n- Preserve the same supported claim unless the source shows it is unsafe.\n- One natural sentence, 8 to 14 whitespace-separated words.\n- Never write 15 words.\n- End with exactly one period.\n- Do not start with A, An, The, New, Study, Paper, Report, This paper, The paper, The authors, The work, We, In this work, or In this paper.\n- Keep simple words. Avoid dense numbers, formulas, and stacked acronyms.\n- Keep a technical term only when removing it would change the claim.\n\nHow to shorten\n- Prefer deleting one hedge, adjective, repeated field label, or generic phrase.\n- Prefer compact ordinary wording over denser jargon.\n- Keep the concrete object and the concrete payoff.\n- Do not remove the condition that makes the claim faithful.\n- Do not make the claim broader, stronger, more causal, or more real-world than the abstract supports.\n\nDrop when\n- The old draft's core claim is unsupported.\n- A faithful short version would become vague or title-like.\n- The only short version depends on specialist jargon.\n\nOutput rules\n- For rewrite, naturalness_risk must be none.\n- For rewrite, plain_takeaway must name the preserved hook in plain words.\n- For rewrite, evidence_span must support the final claim.\n- For drop, summary and evidence_span must be empty and word_count must be 0.\n- word_count must equal the whitespace-separated word count of summary.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nPREVIOUS DRAFT:\n{previous_summary}\n\nPREVIOUS WORD COUNT:\n{previous_summary_word_count}\n\nLOCAL FILTER FLAGS:\n{previous_local_filter_flags}\n\nShorten the previous draft into a valid natural-language feed summary, or drop it."
+}

@@ -1,0 +1,77 @@
+{
+  "prompt_version": "deepseek_v4_pro_natural_language_summary_verifier_v4",
+  "role": "natural_language_summary_verifier",
+  "teacher_input": "title_abstract_candidate_summary",
+  "student_target": "verification_only",
+  "response_schema": {
+    "decision": "accept|reject",
+    "issue_tags": "string[]",
+    "evidence_span": "string",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "deepseek_v4_pro_natural_language_summary_verifier_v4",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "accept",
+              "reject"
+            ]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "unsupported_claim",
+                "wrong_object",
+                "wrong_method",
+                "wrong_mechanism",
+                "wrong_polarity",
+                "false_value_attribution",
+                "scope_upgrade",
+                "too_vague",
+                "too_generic",
+                "title_rehash",
+                "bad_opening",
+                "too_technical",
+                "jargon_stack",
+                "dense_number",
+                "formula_or_symbol",
+                "too_long",
+                "too_short",
+                "not_single_sentence",
+                "awkward",
+                "not_reason_to_open",
+                "none"
+              ]
+            },
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "evidence_span",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You audit natural-language paper-feed summaries for a tiny student model. Return one JSON object only.\n\nThis is a final quality gate, not a normal faithfulness review. The dataset should teach a small model to write simple, readable feed summaries.\n\nAccept only if all checks pass:\n- Faithful to the title and abstract.\n- Gives one concrete reason to open the paper.\n- Adds value beyond the visible title.\n- Reads as natural prose for a broad research-feed reader.\n- Uses simple words wherever possible.\n- Uses technical terms only when the sentence would be wrong without them.\n- Contains at most one compact technical phrase unless the terms are widely recognizable.\n- Puts ordinary words around any necessary technical term.\n- Preserves polarity, uncertainty, value binding, and scope.\n- Does not invent entities, mechanisms, datasets, populations, applications, or causal links.\n- Is one grammatical sentence, 8 to 14 words, ending in a period.\n- Does not start with empty paper language or weak artifact phrases.\n\nReject even if faithful when:\n- The sentence is mostly specialist vocabulary.\n- A non-specialist research reader could not tell the rough point.\n- It reads like a compressed title, theorem statement, taxonomy, or keyword list.\n- It relies on unexplained algebra, geometry, operator, manifold, automata, or model jargon.\n- It stacks methods, acronyms, equations, metrics, or symbol-heavy details.\n- The only faithful summary would be too technical for the product goal.\n- The candidate is too vague, too generic, title rehash, awkward, or malformed.\n\nExamples to reject as too technical for this dataset:\n- Quadratic Rota-Baxter perm algebras correspond exactly to factorizable perm bialgebras.\n- Stable inclusions of C*-algebras are dense among all possible embeddings.\n- IHS manifolds contain infinitely many ruled divisors except in two narrow cases.\n\nExamples to accept:\n- Fluorescent sensors reveal how trastuzumab disrupts HER2 protein clusters.\n- Immersive VR games help students correct misconceptions about density.\n- Inexpensive GPS spoofing tricks Wi-Fi 6E access points into causing harmful interference.\n\nFor accepted rows, use issue_tags=[\"none\"], evidence_span as a short supporting abstract phrase, and reason_span empty. For rejected rows, issue_tags must not include none and reason_span should briefly name the concrete failure.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nWRITER DECISION:\n{writer_decision}\n\nWRITER ISSUE TAGS:\n{writer_issue_tags}\n\nWRITER EVIDENCE SPAN:\n{writer_evidence_span}\n\nCANDIDATE SUMMARY:\n{candidate_summary}\n\nWRITER REASON:\n{writer_reason_span}\n\nVerify the candidate now."
+}

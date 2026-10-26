@@ -2,7 +2,7 @@
 
 ## Prompt idea
 
-Generator variant: [deepseek_v32_generator_agent1_plain_language_anti_notation_v1.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_1/deepseek_v32_generator_agent1_plain_language_anti_notation_v1.json)
+Generator variant: [deepseek_v32_generator_agent1_plain_language_anti_notation_v1.json](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_1/deepseek_v32_generator_agent1_plain_language_anti_notation_v1.json)
 
 Direction:
 - keep the current payoff-first shape
@@ -10,7 +10,7 @@ Direction:
 - avoid formula-shaped summaries and notation-heavy openings
 
 Reviewer:
-- unchanged baseline reviewer: [qwen3_235b_a22b_2507_reviewer_classifier_v2_headline_baseline.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/prompts/synthetic_summary/qwen3_235b_a22b_2507_reviewer_classifier_v2_headline_baseline.json)
+- unchanged baseline reviewer: [qwen3_235b_a22b_2507_reviewer_classifier_v2_headline_baseline.json](/prompts/synthetic_summary/qwen3_235b_a22b_2507_reviewer_classifier_v2_headline_baseline.json)
 
 ## Run results
 
@@ -19,8 +19,8 @@ Reviewer:
 Seed: `20260411`
 
 Artifacts:
-- [run_a/run_manifest.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_1/run_a/run_manifest.json)
-- [run_a/training_rows.jsonl](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_1/run_a/training_rows.jsonl)
+- [run_a/run_manifest.json](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_1/run_a/run_manifest.json)
+- [run_a/training_rows.jsonl](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_1/run_a/training_rows.jsonl)
 
 Manifest summary:
 - kept: `77`
@@ -40,8 +40,8 @@ Kept-set read:
 Seed: `20260412`
 
 Artifacts:
-- [run_b/run_manifest.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_1/run_b/run_manifest.json)
-- [run_b/training_rows.jsonl](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_1/run_b/training_rows.jsonl)
+- [run_b/run_manifest.json](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_1/run_b/run_manifest.json)
+- [run_b/training_rows.jsonl](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_1/run_b/training_rows.jsonl)
 
 Manifest summary:
 - kept: `83`

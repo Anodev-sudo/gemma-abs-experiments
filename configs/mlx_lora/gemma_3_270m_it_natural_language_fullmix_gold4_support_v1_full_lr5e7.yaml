@@ -1,0 +1,43 @@
+# MLX full-finetune config for a fresh 270M title+abstract feed-blurb run.
+# Gold rows are frequency-weighted in the dataset builder, while lower-quality
+# support rows appear once.
+# Run with:
+#   HF_HOME=hf_bucket/experiments/mlx_lora/.hf-home \
+#   hf_bucket/experiments/mlx_lora/runtime/py312/bin/python \
+#     -m mlx_lm.lora \
+#     --config configs/mlx_lora/gemma_3_270m_it_natural_language_fullmix_gold4_support_v1_full_lr5e7.yaml \
+#     --mask-prompt
+
+model: "google/gemma-3-270m-it"
+
+train: true
+fine_tune_type: full
+optimizer: adamw
+
+data: "hf_bucket/experiments/mlx_lora/gemma_3_270m_it_natural_language_fullmix_gold4_support_v1/dataset_title_abstract_feed_blurb_v5"
+
+seed: 20260527
+
+# Force MLX full mode over all selected transformer layers. MLX full mode does
+# not update embeddings or every non-block parameter for this model.
+num_layers: -1
+
+batch_size: 4
+grad_accumulation_steps: 1
+iters: 600
+
+val_batches: -1
+learning_rate: 5e-7
+steps_per_report: 10
+steps_per_eval: 60
+
+resume_adapter_file: null
+adapter_path: "hf_bucket/experiments/mlx_lora/gemma_3_270m_it_natural_language_fullmix_gold4_support_v1/full_lr5e7"
+save_every: 60
+
+test: true
+test_batches: -1
+
+max_seq_length: 1024
+grad_checkpoint: true
+clear_cache_threshold: 8.0

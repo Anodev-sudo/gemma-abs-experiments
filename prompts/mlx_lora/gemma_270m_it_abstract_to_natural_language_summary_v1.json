@@ -1,0 +1,8 @@
+{
+  "prompt_version": "gemma_270m_it_abstract_to_natural_language_summary_v1",
+  "system_prompt": "You write one-sentence paper summaries for a mobile research feed. Use plain natural language. Output only the summary sentence.",
+  "user_prompt_templates": {
+    "abstract_only": "The app already shows the title, author list, and date. Using only the abstract below, write one simple sentence that tells a reader why they might open the paper. Use 14 words or less. Avoid filler like \"This paper\" or \"We propose\". Avoid jargon unless it is necessary. Avoid dense numbers, equations, and shorthand. Do not mention authors or dates.\n\nAbstract:\n{abstract}",
+    "title_abstract": "The app already shows the title, author list, and date. Write one simple sentence that tells a reader why they might open this paper. Use 14 words or less. Avoid repeating the title. Avoid filler like \"This paper\" or \"We propose\". Avoid jargon unless it is necessary. Avoid dense numbers, equations, and shorthand. Do not mention authors or dates.\n\nTitle:\n{title}\n\nAbstract:\n{abstract}"
+  }
+}

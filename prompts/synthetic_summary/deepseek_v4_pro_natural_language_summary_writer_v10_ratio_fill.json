@@ -1,0 +1,115 @@
+{
+  "prompt_version": "deepseek_v4_pro_natural_language_summary_writer_v10_ratio_fill",
+  "role": "natural_language_summary_writer",
+  "teacher_input": "title_abstract",
+  "student_target": "abstract_only_plain_language_feed_hook",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "plain_takeaway": "string",
+    "technical_terms_used": "string[]",
+    "naturalness_risk": "none|too_jargony|title_rehash|too_vague|too_generic|forced|unsupported",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "deepseek_v4_pro_natural_language_summary_writer_v10_ratio_fill",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "rewrite",
+              "drop"
+            ]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "plain_language",
+                "concrete_anchor_preserved",
+                "necessary_term_kept",
+                "jargon_simplified",
+                "title_overlap_avoided",
+                "dense_number_abstracted",
+                "formula_avoided",
+                "polarity_preserved",
+                "value_binding_preserved",
+                "scope_softened",
+                "reason_to_open",
+                "source_too_vague",
+                "too_jargony",
+                "title_rehash",
+                "too_generic",
+                "forced",
+                "unsupported",
+                "none"
+              ]
+            },
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "plain_takeaway": {
+            "type": "string"
+          },
+          "technical_terms_used": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 4,
+            "uniqueItems": true
+          },
+          "naturalness_risk": {
+            "type": "string",
+            "enum": [
+              "none",
+              "too_jargony",
+              "title_rehash",
+              "too_vague",
+              "too_generic",
+              "forced",
+              "unsupported"
+            ]
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "word_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 14
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "plain_takeaway",
+          "technical_terms_used",
+          "naturalness_risk",
+          "evidence_span",
+          "summary",
+          "word_count",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You write natural-language paper-feed summaries for a small mobile app model. Return one JSON object only.\n\nProduct goal\n- The title, authors, and date are already visible.\n- The summary is not a complete abstract compression.\n- The summary should give one clear reason a curious reader might open the paper.\n- Write for a broad research-feed reader, not only a specialist in the paper's subfield.\n- This dataset trains a tiny model, so bad style is contagious.\n\nCore rule\n- Faithful but unreadable is still a drop.\n- But do not drop a hard paper just because it is math, theory, or formal science.\n- Try to translate the abstract's broad point into ordinary words before dropping.\n- One named object is acceptable when the rest of the sentence is plain and the payoff is concrete.\n- Acronyms and symbols in the abstract do not have to appear in the summary if plain replacement is faithful.\n- If your naturalness_risk is anything except none, decision must be drop.\n\nMath and theory bridge\n- For math papers, prefer the broad reason to open: what kind of object is classified, what behavior is proved, what problem is bounded, or what tool becomes available.\n- You may use one necessary term such as graph, symmetry, surface, equation, probability, curvature, algebra, or quantum field.\n- Avoid theorem names, proof names, exact constants, formulas, TeX, and stacked specialist nouns.\n- Replace dense phrases with ordinary relations when faithful: connects, limits, classifies, counts, predicts, bounds, detects, explains, or rules out.\n- If the only faithful output is a theorem-shaped keyword chain, drop.\n- If the abstract says only that a proof is generalized, extended, or completed with no plain object or payoff, drop.\n\nOutput fields\n- plain_takeaway: a rough 5 to 8 word plain-language point before the final summary.\n- technical_terms_used: specialist terms in the summary, not ordinary words, broad fields, place names, or familiar product names.\n- naturalness_risk: none only when a broad research-feed reader can understand the rough point.\n- summary: the final label only when decision is rewrite.\n\nSummary style\n- One natural sentence.\n- 8 to 14 whitespace-separated words, inclusive. Never write 15 words.\n- Aim for 9 to 12 words unless a longer sentence is clearly necessary.\n- End with exactly one period.\n- Plain-language precision is the target: simple words, exact claim.\n- The sentence should sound spoken by a careful science editor, not copied from keywords.\n- Keep one concrete source anchor.\n- Also keep the key payoff condition when the abstract makes it important.\n- A payoff condition may be a limitation overcome, surprising setting, missing assumption, real-world consequence, or practical constraint.\n- Keep a technical term only when replacing it would change the claim.\n- When a technical term is necessary, surround it with ordinary words.\n- Do not translate a precise source object into a broader neighboring concept.\n- Do not create compressed noun phrases that are not natural source phrases.\n- Prefer qualitative wording over dense numbers, formulas, ranges, units, or metric strings.\n\nAllow when natural\n- A single method or object term can stay if it anchors a plain payoff.\n- Examples: stopwatch automata verify driver-rest rules; segmentation masks resist occlusion; GPS spoofing causes interference.\n- A model or benchmark name can stay only if the rest of the sentence explains why it matters.\n- Domain terms like satellite bands, photosynthesis records, VR games, Wi-Fi, ECG, or medical reports are usually fine when the sentence is readable.\n\nDrop when\n- The paper is only a broad report, position piece, forecast, taxonomy, or agenda.\n- The natural sentence would be vague, title-like, too technical, awkward, or unsupported.\n- The best faithful sentence would rely on multiple specialist terms.\n- The summary would mostly contain algebra, geometry, operator, manifold, theorem, embedding, or proof jargon.\n- You can only produce a compact title rephrase.\n\nAvoid\n- Empty openings: This paper, The paper, The authors, The work, We propose, In this work, In this paper.\n- Starts with A, An, The, New, Study, Paper, or Report.\n- Weak artifact openings: A method, A model, A framework, A survey, A review, A new.\n- Vague academic verbs without payoff: presents, introduces, explores, investigates, discusses.\n- Generic payoff words alone: improves performance, enhances efficiency, provides insights.\n- Polarity flips, false value attribution, unsupported causal claims, and scope upgrades.\n- Turning simulations, forecasts, or correlations into real-world proof.\n- Cosmetic simplification that removes the real reason to open the paper.\n\nFaithful but rejected examples\nBad: Quadratic Rota-Baxter perm algebras correspond exactly to factorizable perm bialgebras.\nWhy drop: specialist algebra compressed into a keyword chain.\n\nBad: Stable inclusions of C*-algebras are dense among all possible embeddings.\nWhy drop: faithful, but unreadable for the product goal.\n\nBad: IHS manifolds contain infinitely many ruled divisors except in two narrow cases.\nWhy drop: too many unexplained specialist terms.\n\nBetter math and theory examples\nGood: Certain graph symmetries force networks to split into predictable pieces.\nGood: New curvature bounds rule out several possible shapes for black holes.\nGood: Random walks on sparse graphs mix faster after a simple local change.\nGood: Some quantum fields keep the same behavior after changing their boundary.\nGood: A new counting argument narrows which algebraic surfaces can exist.\n\nBetter natural examples\nGood: Fluorescent sensors reveal how trastuzumab disrupts HER2 protein clusters.\nGood: Five criteria help reviewers judge qualitative HCI studies without forcing quantification.\nGood: Immersive VR games help students correct misconceptions about density.\nGood: Inexpensive GPS spoofing tricks Wi-Fi 6E access points into causing harmful interference.\nGood: Public announcements shifted mask-wearing in Vienna, but effects varied by message content.\n\nOutput rules\n- For rewrite, naturalness_risk must be none.\n- For rewrite, plain_takeaway must be non-empty.\n- For rewrite, technical_terms_used should contain at most two specialist terms, and preferably one.\n- For drop, summary and evidence_span must be empty and word_count must be 0.\n- For drop, plain_takeaway should be empty unless it explains the broad topic plainly.\n- For drop, reason_span should briefly explain why the row cannot produce a natural target.\n- Before answering, count whitespace-separated words in the summary.\n- word_count must equal the whitespace-separated word count of summary.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nWrite the natural-language feed summary now."
+}

@@ -1,0 +1,115 @@
+{
+  "prompt_version": "deepseek_v4_pro_natural_language_summary_writer_v14_math",
+  "role": "natural_language_summary_writer_math",
+  "teacher_input": "title_abstract_math_category",
+  "student_target": "abstract_only_plain_language_math_feed_hook",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "plain_takeaway": "string",
+    "technical_terms_used": "string[]",
+    "naturalness_risk": "none|too_jargony|title_rehash|too_vague|too_generic|forced|unsupported",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "deepseek_v4_pro_natural_language_summary_writer_v14_math",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "rewrite",
+              "drop"
+            ]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "plain_language",
+                "concrete_anchor_preserved",
+                "necessary_term_kept",
+                "jargon_simplified",
+                "title_overlap_avoided",
+                "dense_number_abstracted",
+                "formula_avoided",
+                "polarity_preserved",
+                "value_binding_preserved",
+                "scope_softened",
+                "reason_to_open",
+                "source_too_vague",
+                "too_jargony",
+                "title_rehash",
+                "too_generic",
+                "forced",
+                "unsupported",
+                "none"
+              ]
+            },
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "plain_takeaway": {
+            "type": "string"
+          },
+          "technical_terms_used": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "uniqueItems": true
+          },
+          "naturalness_risk": {
+            "type": "string",
+            "enum": [
+              "none",
+              "too_jargony",
+              "title_rehash",
+              "too_vague",
+              "too_generic",
+              "forced",
+              "unsupported"
+            ]
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "word_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 14
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "plain_takeaway",
+          "technical_terms_used",
+          "naturalness_risk",
+          "evidence_span",
+          "summary",
+          "word_count",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You write natural-language summaries for math papers in a mobile research feed. Return one JSON object only.\n\nThis is the math path. Do not apply the non-math rule that pure theory is usually a drop.\n\nProduct goal\n- The title, authors, and date are already visible.\n- The summary should tell a math-aware feed reader what kind of result the paper adds.\n- It does not need a real-world application.\n- It does not need to explain the whole theorem.\n- It should be a plain description of the result shape: condition, bound, algorithm, proof, classification, equivalence, counterexample, or explanation.\n\nMath natural-language definition\n- Faithful, readable math prose is acceptable even when abstract.\n- A useful math hook can be a new condition, a sharper bound, a simpler proof, an algorithm, a classification, a counterexample, or a connection between objects.\n- Words like proof, theorem, bound, condition, classification, counterexample, algorithm, curve, graph, surface, space, equation, tiling, dimension, operator, algebra, and L-function are allowed when the sentence stays grammatical and readable.\n- Use up to three necessary math terms if ordinary grammar carries the sentence.\n- Prefer result-shape language over application language.\n\nHard style contract\n- One natural sentence.\n- 8 to 14 whitespace-separated words, inclusive. Never write 15 words.\n- Aim for 9 to 12 words.\n- End with exactly one period.\n- Do not start with A, An, The, New, Study, Paper, Report, This paper, The paper, The authors, The work, We, In this work, or In this paper.\n- Start with the mathematical object, result, or action.\n- Avoid formulas, LaTeX, parameter ranges, equation strings, and symbol-heavy notation.\n- Avoid dense named-object chains.\n- Avoid generic phrases alone: provable guarantees, better results, useful framework, new insights.\n\nFaithfulness rules\n- Preserve polarity, uncertainty, scope, and value binding.\n- Do not replace a precise math object with a different neighboring object.\n- Do not claim a conjecture is solved unless the abstract says so.\n- Do not turn a conditional result into an unconditional one.\n- Do not invent applications, experiments, data, or practical effects.\n- If a result is heuristic, empirical, conditional, asymptotic, or partial, preserve that softness.\n\nGood math summaries\n- Scenario-aware bin packing keeps performance guarantees under uncertain demand.\n- Structural conditions show when multidimensional tilings must repeat.\n- Generalized box dimension extends familiar size measures to unbounded sets.\n- Non-computer proof nearly matches the best known sofa-shape bound.\n- Elliptic-curve oscillations may come from patterned zeros in related L-functions.\n- Boundedness results extend discrete Riesz potentials across the full exponent range.\n- Simpler criteria identify when composition operators stay bounded on Besov spaces.\n\nBad math summaries\n- A new theorem improves mathematical understanding of important structures.\nReason: vague, starts with A, no object or result shape.\n\n- Quadratic Rota-Baxter perm algebras correspond exactly to factorizable perm bialgebras.\nReason: dense named-object chain with no readable result shape.\n\n- This paper proves the main conjecture for all cases.\nReason: banned opening and likely unsupported overclaim.\n\n- A categorical functor characterizes exponentiable synthetic infinity category completions.\nReason: starts with A and stacks specialist terms.\n\nDrop when\n- The only faithful summary would be a formula, parameter range, or symbol chain.\n- The only faithful summary is a list of named objects with no readable result shape.\n- The abstract is too vague to identify the result shape.\n- A plain version would require changing the mathematical object or overclaiming the result.\n\nOutput rules\n- For rewrite, naturalness_risk must be none.\n- For rewrite, plain_takeaway must state the result shape in ordinary words.\n- For rewrite, evidence_span must support the final claim.\n- For rewrite, technical_terms_used should list math terms that remain in the final sentence.\n- For drop, summary and evidence_span must be empty and word_count must be 0.\n- For drop, reason_span should briefly explain the irreducible problem.\n- Before answering, count whitespace-separated words in the summary.\n- word_count must equal the whitespace-separated word count of summary.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nPRIMARY CATEGORY:\n{primary_category}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nWrite a math natural-language feed summary, or drop it."
+}

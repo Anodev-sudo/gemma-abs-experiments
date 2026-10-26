@@ -8,34 +8,34 @@ Keep the current payoff-first baseline, but make the sentence itself easier to r
 - prefer plainer wording over notation when both are faithful
 
 I kept the reviewer unchanged:
-- [baseline reviewer](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/prompts/synthetic_summary/qwen3_235b_a22b_2507_reviewer_classifier_v2_headline_baseline.json)
+- [baseline reviewer](/prompts/synthetic_summary/qwen3_235b_a22b_2507_reviewer_classifier_v2_headline_baseline.json)
 
 Generator variant:
-- [deepseek_v32_generator_agent5_plain_verbs_v1.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_5/deepseek_v32_generator_agent5_plain_verbs_v1.json)
+- [deepseek_v32_generator_agent5_plain_verbs_v1.json](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_5/deepseek_v32_generator_agent5_plain_verbs_v1.json)
 
 ## Runs
 ### Run A
 - seed: `20260411`
-- manifest: [run_a/run_manifest.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_5/run_a/run_manifest.json)
+- manifest: [run_a/run_manifest.json](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_5/run_a/run_manifest.json)
 - result: `77 kept / 23 dropped`
 - locally filtered before review: `3`
 - model reviewed: `97`
 - `captures_main_point=false`: `19`
 - `title_overlap_ok=false`: `4`
-- main drop reasons from [run_a/dropped_rows.jsonl](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_5/run_a/dropped_rows.jsonl):
+- main drop reasons from [run_a/dropped_rows.jsonl](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_5/run_a/dropped_rows.jsonl):
   - `misses the main payoff`
   - `over 15 words`
   - `too vague`
 
 ### Run B
 - seed: `20260412`
-- manifest: [run_b/run_manifest.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_5/run_b/run_manifest.json)
+- manifest: [run_b/run_manifest.json](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_5/run_b/run_manifest.json)
 - result: `80 kept / 20 dropped`
 - locally filtered before review: `5`
 - model reviewed: `95`
 - `captures_main_point=false`: `14`
 - `title_overlap_ok=false`: `5`
-- main drop reasons from [run_b/dropped_rows.jsonl](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_5/run_b/dropped_rows.jsonl):
+- main drop reasons from [run_b/dropped_rows.jsonl](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_5/run_b/dropped_rows.jsonl):
   - `misses the main payoff`
   - `mostly repeats the title`
   - `over 15 words`
@@ -46,11 +46,11 @@ Generator variant:
 - local hard filtering stayed modest: `3` rows in run A, `5` rows in run B, all from obvious constraints like length
 
 Readability did improve some. Many accepted lines are easier to parse at a glance than the denser baseline style:
-- [run_a/training_rows.jsonl](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_5/run_a/training_rows.jsonl)
+- [run_a/training_rows.jsonl](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_5/run_a/training_rows.jsonl)
   - `Production monitoring generates realistic mocks for unit tests automatically.`
   - `DarkHorse uses UDP to cut onion service latency by up to 3.6x.`
   - `Domain knowledge cuts CFST column capacity prediction error by over 50%.`
-- [run_b/training_rows.jsonl](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_5/run_b/training_rows.jsonl)
+- [run_b/training_rows.jsonl](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_5/run_b/training_rows.jsonl)
   - `LicenseGPT cuts license analysis time by 94% for commercial AI datasets.`
   - `AI spots Mars habitability clues from NASA mass spectrometry data.`
   - `Editing LLMs to keep both old and new facts avoids catastrophic forgetting.`

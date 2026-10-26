@@ -1,0 +1,44 @@
+
+========================================================
+REPR (n=239)
+========================================================
+model       faith          95% CI
+baseline    1.883  [1.764, 1.998]
+fullft      1.699  [1.584, 1.816]
+bf16        2.010  [1.900, 2.123]
+prompt      1.933  [1.816, 2.052]
+
+delta vs baseline (per-paper bootstrap CI):
+  fullft   - baseline: -0.184  [-0.322, -0.042]  *sig*
+  bf16     - baseline: +0.128  [-0.021, +0.274]
+  prompt   - baseline: +0.050  [-0.054, +0.155]
+
+hard-halluc (<=0.5) /239:
+  baseline   26 (10.9%)
+  fullft     31 (13.0%)
+  bf16       21 ( 8.8%)
+  prompt     24 (10.0%)
+
+inter-rater n=924: exact=79% MAD=0.21
+
+========================================================
+STRESS (n=146)
+========================================================
+model       faith          95% CI
+baseline    1.863  [1.716, 2.007]
+fullft      1.767  [1.627, 1.914]
+bf16        1.949  [1.812, 2.086]
+prompt      1.853  [1.712, 2.000]
+
+delta vs baseline (per-paper bootstrap CI):
+  fullft   - baseline: -0.096  [-0.288, +0.089]
+  bf16     - baseline: +0.086  [-0.106, +0.274]
+  prompt   - baseline: -0.010  [-0.158, +0.140]
+
+hard-halluc (<=0.5) /146:
+  baseline   14 ( 9.6%)
+  fullft     12 ( 8.2%)
+  bf16        9 ( 6.2%)
+  prompt     15 (10.3%)
+
+inter-rater n=576: exact=85% MAD=0.15

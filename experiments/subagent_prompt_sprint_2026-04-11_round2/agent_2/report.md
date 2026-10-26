@@ -11,18 +11,18 @@ Main idea:
 - reject openings that merely classify the work instead of naming what changes
 
 Generator prompt:
-- [deepseek_v32_generator_agent2_opening_attack_v1.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_2/deepseek_v32_generator_agent2_opening_attack_v1.json)
+- [deepseek_v32_generator_agent2_opening_attack_v1.json](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_2/deepseek_v32_generator_agent2_opening_attack_v1.json)
 
 Reviewer used unchanged:
-- [qwen3_235b_a22b_2507_reviewer_classifier_v2_headline_baseline.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/prompts/synthetic_summary/qwen3_235b_a22b_2507_reviewer_classifier_v2_headline_baseline.json)
+- [qwen3_235b_a22b_2507_reviewer_classifier_v2_headline_baseline.json](/prompts/synthetic_summary/qwen3_235b_a22b_2507_reviewer_classifier_v2_headline_baseline.json)
 
 ## Runs
 
 ### Run A
 
 - Seed: `20260411`
-- Output dir: [run_a](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_2/run_a)
-- Manifest: [run_manifest.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_2/run_a/run_manifest.json)
+- Output dir: [run_a](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_2/run_a)
+- Manifest: [run_manifest.json](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_2/run_a/run_manifest.json)
 
 Manifest summary:
 - kept: `75`
@@ -46,8 +46,8 @@ Main drop reasons from final review decisions:
 ### Run B
 
 - Seed: `20260412`
-- Output dir: [run_b](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_2/run_b)
-- Manifest: [run_manifest.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_2/run_b/run_manifest.json)
+- Output dir: [run_b](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_2/run_b)
+- Manifest: [run_manifest.json](/experiments/subagent_prompt_sprint_2026-04-11_round2/agent_2/run_b/run_manifest.json)
 
 Manifest summary:
 - kept: `78`

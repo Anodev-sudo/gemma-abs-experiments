@@ -146,7 +146,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_mlx_adapter_metadata(path: Path) -> dict[str, Any]:
+def load_mlx_adapter_metadata(path: Path, *, expected_base_model: str) -> dict[str, Any]:
     metadata = json.loads(path.read_text(encoding="utf-8"))
     lora_parameters = metadata.get("lora_parameters", {})
     keys = tuple(
@@ -169,8 +169,8 @@ def load_mlx_adapter_metadata(path: Path) -> dict[str, Any]:
             f"Expected dropout 0.0, found {lora_parameters.get('dropout')}."
         )
     model_name = str(metadata.get("model", ""))
-    if model_name != DEFAULT_MODEL_REPO_ID:
-        raise ValueError(f"Expected base model {DEFAULT_MODEL_REPO_ID}, found {model_name}.")
+    if model_name != expected_base_model:
+        raise ValueError(f"Expected base model {expected_base_model}, found {model_name}.")
     return metadata
 
 
@@ -516,7 +516,10 @@ def main() -> None:
     hf_home = Path(args.hf_home)
 
     ensure_new_output_dir(output_dir, overwrite=args.overwrite)
-    metadata = load_mlx_adapter_metadata(mlx_adapter_config)
+    metadata = load_mlx_adapter_metadata(
+        mlx_adapter_config,
+        expected_base_model=args.base_model,
+    )
     model_path = resolve_model_path(
         model_path=args.model_path,
         hf_home=hf_home,

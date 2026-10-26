@@ -1,0 +1,32 @@
+
+======================================================
+REPR (n=240)
+======================================================
+briefground 1.869  [1.750,1.983]
+baseline    1.896  [1.775,2.017]
+granite     2.254  [2.152,2.354]
+deltas:
+  briefground-baseline  : -0.027 [-0.175,+0.117]
+  briefground-granite   : -0.385 [-0.531,-0.240] *sig*
+  baseline   -granite   : -0.358 [-0.506,-0.212] *sig*
+hard-halluc <=0.5:
+  briefground 17 (7.1%)
+  baseline    27 (11.2%)
+  granite     10 (4.2%)
+inter-rater n=705 exact=80% MAD=0.21
+
+======================================================
+STRESS (n=150)
+======================================================
+briefground 1.743  [1.600,1.883]
+baseline    1.860  [1.710,2.010]
+granite     2.263  [2.140,2.390]
+deltas:
+  briefground-baseline  : -0.117 [-0.290,+0.067]
+  briefground-granite   : -0.520 [-0.713,-0.323] *sig*
+  baseline   -granite   : -0.403 [-0.610,-0.203] *sig*
+hard-halluc <=0.5:
+  briefground 21 (14.0%)
+  baseline    15 (10.0%)
+  granite     6 (4.0%)
+inter-rater n=429 exact=76% MAD=0.25

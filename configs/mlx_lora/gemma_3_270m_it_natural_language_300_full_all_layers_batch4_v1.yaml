@@ -1,0 +1,41 @@
+# MLX all-layer full-finetune config for the 300-row natural-language proof of
+# concept, matching the LoRA run's batch and step shape.
+# Run with:
+#   HF_HOME=hf_bucket/experiments/mlx_lora/.hf-home \
+#   hf_bucket/experiments/mlx_lora/runtime/py312/bin/python \
+#     -m mlx_lm.lora \
+#     --config configs/mlx_lora/gemma_3_270m_it_natural_language_300_full_all_layers_batch4_v1.yaml \
+#     --mask-prompt
+
+model: "google/gemma-3-270m-it"
+
+train: true
+fine_tune_type: full
+optimizer: adamw
+
+data: "hf_dataset/releases/recent_3y_balanced_20000_natural_language_teacher_deepseek_v4_pro_300_milestone/mlx_lora/abstract_only_chat_gemma_270m_it_abstract_to_natural_language_summary_v1"
+
+seed: 20260522
+
+# Force MLX to update all transformer layers selected by full mode.
+num_layers: -1
+
+batch_size: 4
+grad_accumulation_steps: 1
+iters: 300
+
+val_batches: -1
+learning_rate: 1e-6
+steps_per_report: 10
+steps_per_eval: 20
+
+resume_adapter_file: null
+adapter_path: "hf_bucket/experiments/mlx_lora/gemma_3_270m_it_natural_language_300_full_all_layers_batch4_v1/full"
+save_every: 20
+
+test: true
+test_batches: -1
+
+max_seq_length: 1024
+grad_checkpoint: true
+clear_cache_threshold: 8.0

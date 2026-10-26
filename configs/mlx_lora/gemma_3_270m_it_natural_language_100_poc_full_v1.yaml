@@ -1,0 +1,35 @@
+# MLX full-finetune config for a 100-row natural-language summary proof of concept.
+# Run with:
+#   python3 -m mlx_lm.lora --config configs/mlx_lora/gemma_3_270m_it_natural_language_100_poc_full_v1.yaml --mask-prompt
+
+model: "google/gemma-3-270m-it"
+
+train: true
+fine_tune_type: full
+optimizer: adamw
+
+data: "hf_dataset/releases/recent_3y_balanced_20000_natural_language_teacher_deepseek_v4_pro_v7_100_good/mlx_lora/abstract_only_chat_gemma_270m_it_abstract_to_natural_language_summary_v1"
+
+seed: 20260521
+
+# Full finetuning updates every parameter, so start with a lower-impact run than
+# the LoRA POC and save often enough to compare early checkpoints.
+batch_size: 1
+grad_accumulation_steps: 4
+iters: 80
+
+val_batches: -1
+learning_rate: 1e-6
+steps_per_report: 10
+steps_per_eval: 10
+
+resume_adapter_file: null
+adapter_path: "hf_bucket/experiments/mlx_lora/gemma_3_270m_it_natural_language_100_poc_full_v1/full"
+save_every: 10
+
+test: true
+test_batches: -1
+
+max_seq_length: 1024
+grad_checkpoint: true
+clear_cache_threshold: 8.0

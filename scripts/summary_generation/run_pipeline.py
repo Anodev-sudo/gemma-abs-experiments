@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from collections import Counter
@@ -73,6 +74,8 @@ DEFAULT_FORBIDDEN_PREFIXES = (
     "in this work",
     "in this paper",
 )
+WORD_TOKEN_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9'\\-]*")
+ACRONYM_RE = re.compile(r"\b[A-Z]{2,}(?:-[A-Z0-9]+)?\b")
 
 
 def utc_now_iso() -> str:
@@ -225,6 +228,9 @@ def input_path_for_stage(config: dict[str, Any], role: str) -> Path:
     output_root = Path(config["output"]["run_root"])
     if role == "writer":
         return output_root / "candidate_pool" / "candidates.jsonl"
+    reviewer_input = str(get_path(config, "reviewer", "input_path", default="")).strip()
+    if reviewer_input:
+        return Path(reviewer_input)
     return output_root / "local_eligible_for_review" / "writer_outputs_ordered.jsonl"
 
 
@@ -423,6 +429,10 @@ def probe_record(config: dict[str, Any]) -> dict[str, Any]:
     record.setdefault("correction_summary", record["generated_summary"])
     record.setdefault("candidate_summary", record["generated_summary"])
     record.setdefault("correction_writer", "probe")
+    record.setdefault("writer_decision", "rewrite")
+    record.setdefault("writer_issue_tags", ["none"])
+    record.setdefault("writer_evidence_span", "probe evidence")
+    record.setdefault("writer_reason_span", "")
     record.setdefault("correction_issue_tags", "")
     record.setdefault("correction_evidence_span", "")
     record.setdefault("correction_reason_span", "")
@@ -608,6 +618,15 @@ def extract_numbers(value: str) -> set[str]:
     return set(re.findall(r"(?<![A-Za-z])[-+]?\d+(?:[.,]\d+)*(?:\.\d+)?%?", value))
 
 
+def long_word_count(value: str, *, min_chars: int) -> int:
+    count = 0
+    for token in WORD_TOKEN_RE.findall(value):
+        alpha_count = sum(1 for char in token if char.isalpha())
+        if alpha_count >= min_chars:
+            count += 1
+    return count
+
+
 def local_gate_flags(summary: str, row: dict[str, Any], config: dict[str, Any]) -> list[str]:
     gates = config.get("local_gates", {})
     title = str(row.get("title", ""))
@@ -641,6 +660,36 @@ def local_gate_flags(summary: str, row: dict[str, Any], config: dict[str, Any]) 
         summary_numbers = extract_numbers(normalized)
         if any(number not in source_numbers for number in summary_numbers):
             flags.append("unsupported_number_string")
+    max_summary_numbers = gates.get("max_summary_numbers")
+    if max_summary_numbers is not None and len(extract_numbers(normalized)) > int(max_summary_numbers):
+        flags.append("too_many_numbers")
+    max_acronyms = gates.get("max_acronyms")
+    if max_acronyms is not None and len(ACRONYM_RE.findall(normalized)) > int(max_acronyms):
+        flags.append("too_many_acronyms")
+    max_long_words = gates.get("max_long_words")
+    if max_long_words is not None:
+        min_chars = int(gates.get("long_word_min_chars", 13))
+        if long_word_count(normalized, min_chars=min_chars) > int(max_long_words):
+            flags.append("too_many_long_words")
+    required_writer_naturalness_risk = str(
+        gates.get("required_writer_naturalness_risk", "")
+    ).strip().lower()
+    if required_writer_naturalness_risk:
+        writer_risk = str(row.get("writer_naturalness_risk", "")).strip().lower()
+        if writer_risk != required_writer_naturalness_risk:
+            flags.append("writer_naturalness_risk")
+    max_writer_technical_terms = gates.get("max_writer_technical_terms")
+    if max_writer_technical_terms is not None:
+        technical_terms = [
+            term.strip()
+            for term in string_list(row.get("writer_technical_terms_used"))
+            if term.strip()
+        ]
+        if len(technical_terms) > int(max_writer_technical_terms):
+            flags.append("too_many_writer_technical_terms")
+    if bool_value(gates.get("require_writer_plain_takeaway"), False):
+        if not normalize_text(str(row.get("writer_plain_takeaway", ""))):
+            flags.append("missing_writer_plain_takeaway")
     return flags
 
 
@@ -729,11 +778,15 @@ def normalize_writer_result(
     issue_tags = parse_tags(parsed.get("issue_tags", []), allowed_tags=allowed_tags)
     if not issue_tags and decision in DECISION_ACCEPTED_WRITER:
         issue_tags = ["none"]
-    flags = local_gate_flags(summary, row, config) if summary else ["empty_summary"]
     format_flags: list[str] = []
     if reported_words != actual_words:
         format_flags.append("word_count_mismatch")
-    return {
+    technical_terms_used = [
+        normalize_text(str(term))
+        for term in string_list(parsed.get("technical_terms_used"))
+        if normalize_text(str(term))
+    ]
+    result = {
         **row,
         "generated_summary": summary,
         "correction_writer": get_path(config, "writer", "writer_label", default="writer"),
@@ -747,6 +800,11 @@ def normalize_writer_result(
         "correction_decision": decision,
         "writer_issue_tags": issue_tags,
         "correction_issue_tags": issue_tags,
+        "writer_plain_takeaway": normalize_text(str(parsed.get("plain_takeaway", ""))),
+        "writer_technical_terms_used": technical_terms_used,
+        "writer_naturalness_risk": normalize_text(
+            str(parsed.get("naturalness_risk", ""))
+        ).casefold(),
         "writer_evidence_span": normalize_text(str(parsed.get("evidence_span", ""))),
         "correction_evidence_span": normalize_text(str(parsed.get("evidence_span", ""))),
         "writer_reason_span": normalize_text(str(parsed.get("reason_span", ""))),
@@ -754,11 +812,14 @@ def normalize_writer_result(
         "writer_reported_word_count": reported_words,
         "writer_actual_word_count": actual_words,
         "writer_format_flags": format_flags,
-        "writer_local_filter_flags": flags,
         "raw_writer_response": parsed,
         "raw_writer_text": raw_text,
         "raw_writer_response_id": raw_response.get("id", ""),
     }
+    result["writer_local_filter_flags"] = (
+        local_gate_flags(summary, result, config) if summary else ["empty_summary"]
+    )
+    return result
 
 
 def normalize_reviewer_result(
@@ -776,8 +837,10 @@ def normalize_reviewer_result(
         decision = "reject"
     allowed_tags = set(string_list(get_path(config, "reviewer", "allowed_issue_tags", default=[]))) or None
     issue_tags = parse_tags(parsed.get("issue_tags", []), allowed_tags=allowed_tags)
-    if not issue_tags and decision == "accept":
+    if decision == "accept":
         issue_tags = ["none"]
+    else:
+        issue_tags = [tag for tag in issue_tags if tag != "none"]
     return {
         **row,
         "reviewer_model": payload["model"],
@@ -797,6 +860,26 @@ def normalize_reviewer_result(
         "raw_reviewer_text": raw_text,
         "raw_reviewer_response_id": raw_response.get("id", ""),
     }
+
+
+def sanitize_cached_reviewer_result(
+    row: dict[str, Any],
+    *,
+    allowed_tags: set[str] | None,
+) -> dict[str, Any]:
+    sanitized = dict(row)
+    decision = str(sanitized.get("reviewer_decision", sanitized.get("verifier_decision", ""))).strip().lower()
+    tags = parse_tags(sanitized.get("reviewer_issue_tags", sanitized.get("verifier_issue_tags", [])), allowed_tags=allowed_tags)
+    if decision == "accept":
+        tags = ["none"]
+    else:
+        tags = [tag for tag in tags if tag != "none"]
+    sanitized["reviewer_issue_tags"] = tags
+    sanitized["verifier_issue_tags"] = tags
+    raw_response = sanitized.get("raw_reviewer_response")
+    if isinstance(raw_response, dict):
+        sanitized["raw_reviewer_response"] = {**raw_response, "issue_tags": tags}
+    return sanitized
 
 
 def command_model_stage(
@@ -867,11 +950,18 @@ def command_model_stage(
         raise RuntimeError("OPENROUTER_API_KEY is required for live generation stages")
     output_path = output_path_for_stage(config, role)
     existing = load_jsonl(output_path) if output_path.exists() else []
-    completed = {row["candidate_id"]: row for row in existing}
+    if role == "reviewer":
+        allowed_tags = set(string_list(get_path(config, "reviewer", "allowed_issue_tags", default=[]))) or None
+        existing = [
+            sanitize_cached_reviewer_result(row, allowed_tags=allowed_tags)
+            for row in existing
+        ]
+    source_ids = {row["candidate_id"] for row in source_rows}
+    completed = {row["candidate_id"]: row for row in existing if row.get("candidate_id") in source_ids}
     pending = [row for row in source_rows if row["candidate_id"] not in completed or only_failed]
     print(
         f"[summary-generation:{role}] running {len(pending)} pending "
-        f"({len(existing)} existing) with {role_config.get('workers', 4)} worker(s)...",
+        f"({len(completed)} existing) with {role_config.get('workers', 4)} worker(s)...",
         file=sys.stderr,
         flush=True,
     )
@@ -966,7 +1056,10 @@ def command_local_filter(config: dict[str, Any]) -> list[dict[str, Any]]:
     excluded: list[dict[str, Any]] = []
     for row in rows:
         accepted_decisions = set(string_list(get_path(config, "writer", "accepted_decisions", default=[]))) or DECISION_ACCEPTED_WRITER
-        if row.get("writer_decision") in accepted_decisions and not row.get("writer_local_filter_flags"):
+        row = dict(row)
+        summary = normalize_text(str(row.get("generated_summary", "")))
+        row["writer_local_filter_flags"] = local_gate_flags(summary, row, config) if summary else ["empty_summary"]
+        if row.get("writer_decision") in accepted_decisions and not row["writer_local_filter_flags"]:
             eligible.append(row)
         else:
             excluded.append(row)
@@ -1075,13 +1168,20 @@ def count_jsonl(path: Path) -> int:
 
 def command_report(config: dict[str, Any]) -> dict[str, Any]:
     output_root = Path(config["output"]["run_root"])
+    reviewer_input_override = str(get_path(config, "reviewer", "input_path", default="")).strip()
+    candidate_count = count_jsonl(output_root / "candidate_pool" / "candidates.jsonl")
+    local_eligible_count = count_jsonl(output_root / "local_eligible_for_review" / "writer_outputs_ordered.jsonl")
+    if candidate_count == 0 and reviewer_input_override:
+        candidate_count = count_jsonl(Path(reviewer_input_override))
+        if local_eligible_count == 0:
+            local_eligible_count = candidate_count
     report = {
         "created_at": utc_now_iso(),
         "run_root": str(output_root),
-        "candidates": count_jsonl(output_root / "candidate_pool" / "candidates.jsonl"),
+        "candidates": candidate_count,
         "writer_completed": count_jsonl(output_root / "writer_run" / "writer_outputs_ordered.jsonl"),
         "writer_failed": count_jsonl(output_root / "writer_run" / "failed_writer_outputs.jsonl"),
-        "local_eligible": count_jsonl(output_root / "local_eligible_for_review" / "writer_outputs_ordered.jsonl"),
+        "local_eligible": local_eligible_count,
         "local_excluded": count_jsonl(output_root / "local_eligible_for_review" / "excluded.jsonl"),
         "reviewer_completed": count_jsonl(output_root / "reviewer_run" / "reviewer_outputs_ordered.jsonl"),
         "reviewer_failed": count_jsonl(output_root / "reviewer_run" / "failed_reviewer_outputs.jsonl"),

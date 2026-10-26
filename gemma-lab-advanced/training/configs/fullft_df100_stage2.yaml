@@ -1,0 +1,28 @@
+# FULL fine-tune variant — STAGE 2 voice drill. Resumes stage-1 full weights.
+model: "quant_probe/stripped_base_df100"
+train: true
+test: true
+data: "gold_pipeline/05_milestone_assembly/gold_set/mlx_lora/title_abstract_chat_gemma_270m_it_abstract_to_feed_blurb_v5"
+
+fine_tune_type: full
+num_layers: -1
+
+resume_adapter_file: "training/runs/gemma_v5_df100_fullft_v1/stage1/adapters/adapters.safetensors"
+
+batch_size: 4
+iters: 400
+max_seq_length: 1024
+mask_prompt: true
+learning_rate: 5.0e-6
+lr_schedule:
+  name: cosine_decay
+  warmup: 20
+  warmup_init: 1.0e-7
+  arguments: [5.0e-6, 400, 5.0e-7]
+save_every: 50
+steps_per_eval: 50
+steps_per_report: 10
+val_batches: -1
+test_batches: -1
+seed: 20260613
+adapter_path: "training/runs/gemma_v5_df100_fullft_v1/stage2/adapters"

@@ -1,0 +1,115 @@
+{
+  "prompt_version": "deepseek_v4_pro_natural_language_summary_writer_v12_verifier_reason_rescue",
+  "role": "natural_language_summary_writer_verifier_reason_rescue",
+  "teacher_input": "title_abstract_previous_draft_verifier_reason",
+  "student_target": "abstract_only_plain_language_feed_hook",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "plain_takeaway": "string",
+    "technical_terms_used": "string[]",
+    "naturalness_risk": "none|too_jargony|title_rehash|too_vague|too_generic|forced|unsupported",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "deepseek_v4_pro_natural_language_summary_writer_v12_verifier_reason_rescue",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "rewrite",
+              "drop"
+            ]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "plain_language",
+                "concrete_anchor_preserved",
+                "necessary_term_kept",
+                "jargon_simplified",
+                "title_overlap_avoided",
+                "dense_number_abstracted",
+                "formula_avoided",
+                "polarity_preserved",
+                "value_binding_preserved",
+                "scope_softened",
+                "reason_to_open",
+                "source_too_vague",
+                "too_jargony",
+                "title_rehash",
+                "too_generic",
+                "forced",
+                "unsupported",
+                "none"
+              ]
+            },
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "plain_takeaway": {
+            "type": "string"
+          },
+          "technical_terms_used": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 4,
+            "uniqueItems": true
+          },
+          "naturalness_risk": {
+            "type": "string",
+            "enum": [
+              "none",
+              "too_jargony",
+              "title_rehash",
+              "too_vague",
+              "too_generic",
+              "forced",
+              "unsupported"
+            ]
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "word_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 14
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "plain_takeaway",
+          "technical_terms_used",
+          "naturalness_risk",
+          "evidence_span",
+          "summary",
+          "word_count",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You repair paper-feed summaries that a verifier rejected as too vague, too generic, title-like, or not a clear reason to open. Return one JSON object only.\n\nUse the verifier's reason as pressure, not as truth. Check the title and abstract yourself. The final summary should give one concrete, source-supported reason a curious reader might open the paper.\n\nHard contract\n- One natural sentence, 8 to 14 whitespace-separated words.\n- Never write 15 words.\n- End with exactly one period.\n- Do not start with A, An, The, New, Study, Paper, Report, This paper, The paper, The authors, The work, We, In this work, or In this paper.\n- Add value beyond the visible title.\n- Prefer one concrete non-title detail: a result, condition, comparison, setting, limitation overcome, or practical consequence.\n- Use simple words. Keep technical terms only when necessary for faithfulness.\n- Avoid dense numbers, equations, formulas, metric strings, and acronym stacks.\n\nRepair strategy\n- If the old draft is too generic, add the strongest supported payoff from the abstract.\n- If it is title-like, shift to a concrete finding or constraint not obvious from the title.\n- If it lacks a reason to open, name what the reader would learn.\n- If the verifier points to a missing condition, preserve that condition.\n- Do not invent a benefit just to make the row exciting.\n\nDrop when\n- The abstract does not support a concrete, readable hook.\n- Fixing the verifier issue would require guessing.\n- The best faithful sentence is still a method label plus a generic benefit.\n- The row's real problem is unsupported, wrong, polarity-flipped, or overstrong.\n\nOutput rules\n- For rewrite, naturalness_risk must be none.\n- For rewrite, plain_takeaway must state the concrete hook in plain words.\n- For rewrite, evidence_span must support the repaired hook.\n- For drop, summary and evidence_span must be empty and word_count must be 0.\n- word_count must equal the whitespace-separated word count of summary.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nPREVIOUS DRAFT:\n{previous_summary}\n\nVERIFIER ISSUE TAGS:\n{previous_reviewer_issue_tags}\n\nVERIFIER EVIDENCE:\n{previous_reviewer_evidence_span}\n\nVERIFIER REASON:\n{previous_reviewer_reason_span}\n\nRepair the draft into a clearer reason-to-open summary, or drop it."
+}

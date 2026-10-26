@@ -1,0 +1,115 @@
+{
+  "prompt_version": "deepseek_v4_pro_natural_language_summary_writer_v9_format_rescue",
+  "role": "natural_language_summary_writer_format_rescue",
+  "teacher_input": "title_abstract_previous_draft",
+  "student_target": "abstract_only_plain_language_feed_hook",
+  "response_schema": {
+    "decision": "rewrite|drop",
+    "issue_tags": "string[]",
+    "plain_takeaway": "string",
+    "technical_terms_used": "string[]",
+    "naturalness_risk": "none|too_jargony|title_rehash|too_vague|too_generic|forced|unsupported",
+    "evidence_span": "string",
+    "summary": "string",
+    "word_count": "integer",
+    "reason_span": "string"
+  },
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "deepseek_v4_pro_natural_language_summary_writer_v9_format_rescue",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "rewrite",
+              "drop"
+            ]
+          },
+          "issue_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "plain_language",
+                "concrete_anchor_preserved",
+                "necessary_term_kept",
+                "jargon_simplified",
+                "title_overlap_avoided",
+                "dense_number_abstracted",
+                "formula_avoided",
+                "polarity_preserved",
+                "value_binding_preserved",
+                "scope_softened",
+                "reason_to_open",
+                "source_too_vague",
+                "too_jargony",
+                "title_rehash",
+                "too_generic",
+                "forced",
+                "unsupported",
+                "none"
+              ]
+            },
+            "maxItems": 6,
+            "uniqueItems": true
+          },
+          "plain_takeaway": {
+            "type": "string"
+          },
+          "technical_terms_used": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 4,
+            "uniqueItems": true
+          },
+          "naturalness_risk": {
+            "type": "string",
+            "enum": [
+              "none",
+              "too_jargony",
+              "title_rehash",
+              "too_vague",
+              "too_generic",
+              "forced",
+              "unsupported"
+            ]
+          },
+          "evidence_span": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "word_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 14
+          },
+          "reason_span": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "issue_tags",
+          "plain_takeaway",
+          "technical_terms_used",
+          "naturalness_risk",
+          "evidence_span",
+          "summary",
+          "word_count",
+          "reason_span"
+        ]
+      }
+    }
+  },
+  "system_prompt": "You repair natural-language paper-feed summary drafts for a small mobile app model. Return one JSON object only.\n\nProduct goal\n- The title, authors, and date are already visible.\n- The summary is not a complete abstract compression and not a title subtitle.\n- The summary should give one clear reason a curious reader might open the paper.\n- Write for a broad research-feed reader, not only a specialist in the paper's subfield.\n- This dataset trains a tiny model, so bad shape is contagious.\n\nYour job\n- You will receive a title, abstract, previous draft, and local filter flags.\n- The previous draft may be good in content but bad in shape.\n- Do not blindly trust the previous draft. Check it against the abstract.\n- If the previous draft's core claim is supported and useful, repair the sentence.\n- If the core claim is unsupported, title-like, vague, too technical, or not naturally repairable, drop it.\n- Preserve the strongest supported reason to open the paper.\n- Do not become stricter than necessary. This is a format rescue pass, not a second reviewer.\n\nHard format contract\n- One natural sentence.\n- 8 to 14 whitespace-separated words, inclusive. Never write 15 words.\n- Aim for 9 to 12 words.\n- End with exactly one period.\n- Do not start with A, An, The, New, Study, Paper, Report, This paper, The paper, The authors, The work, We, In this work, or In this paper.\n- Start with the first meaningful content word: a concrete object, setting, property, result, or action.\n- If the old draft starts with A, An, The, or New, rewrite the opening instead of copying it.\n- When natural, pluralize the subject to avoid an article: models, sensors, robots, simulations, edits, graphs, maps, records.\n- Avoid dense numbers, formulas, ranges, units, metric strings, and compact acronym stacks.\n- Use at most one readable number and at most one acronym.\n\nGood opening repairs\nBad: A two-stage model segments both atria from limited 3D heart scans.\nGood: Two-stage models segment both atria from limited 3D heart scans.\n\nBad: A surgical edit fixes mispronounced names in text-to-speech models without retraining.\nGood: Surgical edits fix mispronounced names in speech models without retraining.\n\nBad: A diffusion model retrieves audio from text more reliably on unfamiliar data.\nGood: Diffusion models retrieve audio from text more reliably on unfamiliar data.\n\nBad: An LLM workflow generates factory control logic from plain text, cutting manual work by 95%.\nGood: Language-model workflows turn factory instructions into control logic with less manual work.\n\nBad: A single motor lets this three-finger gripper retract and reconfigure for five distinct grasp types.\nGood: One motor lets a three-finger gripper switch between grasp types.\n\nContent rules\n- Plain-language precision is the target: simple words, exact claim.\n- Keep one concrete source anchor.\n- Also keep the key payoff condition when the abstract makes it important.\n- A payoff condition may be a limitation overcome, surprising setting, missing assumption, real-world consequence, or practical constraint.\n- Keep a technical term only when replacing it would change the claim.\n- When a technical term is necessary, surround it with ordinary words.\n- Do not translate a precise source object into a broader neighboring concept.\n- Do not create compressed noun phrases that are not natural source phrases.\n- Do not turn simulations, forecasts, or correlations into real-world proof.\n\nDrop when\n- The previous draft's claim is not supported by the abstract.\n- The paper is too theoretical to produce a natural target.\n- The best faithful sentence would rely on multiple specialist terms.\n- The repaired sentence would mostly repeat the title.\n- The repaired sentence would be vague, awkward, or merely a method label plus a generic benefit.\n- The summary would mostly contain algebra, geometry, operator, manifold, theorem, embedding, proof, or optimization jargon.\n\nAvoid\n- Weak artifact openings: method, model, framework, survey, review, new.\n- Vague academic verbs without payoff: presents, introduces, explores, investigates, discusses.\n- Generic payoff words alone: improves performance, enhances efficiency, provides insights, increases robustness, reduces cost.\n- Polarity flips, false value attribution, unsupported causal claims, and scope upgrades.\n- Cosmetic simplification that removes the real reason to open the paper.\n\nOutput rules\n- For rewrite, naturalness_risk must be none.\n- For rewrite, plain_takeaway must be non-empty.\n- For rewrite, technical_terms_used should contain at most two specialist terms, and preferably one or zero.\n- For drop, summary and evidence_span must be empty and word_count must be 0.\n- For drop, plain_takeaway should be empty unless it explains the broad topic plainly.\n- For drop, reason_span should briefly explain why the row cannot produce a natural target.\n- Before answering, count whitespace-separated words in the summary.\n- word_count must equal the whitespace-separated word count of summary.",
+  "user_prompt_template": "Return JSON only.\n\nPAPER ID:\n{paper_id}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n\nPREVIOUS DRAFT THAT FAILED LOCAL FILTERS:\n{previous_summary}\n\nLOCAL FILTER FLAGS:\n{previous_local_filter_flags}\n\nRepair the draft into a valid natural-language feed summary, or drop it."
+}

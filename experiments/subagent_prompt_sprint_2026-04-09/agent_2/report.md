@@ -4,8 +4,8 @@
 If the generator spends more of its limited words on the payoff or result instead of restating the topic, the kept summaries should become more feed-useful and title-overlap failures should drop.
 
 ## Prompt Changes
-- Added [deepseek_v32_generator_v4_payoff_first.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-09/agent_2/deepseek_v32_generator_v4_payoff_first.json).
-- Added [qwen3_235b_a22b_2507_reviewer_classifier_v2_payoff_first.json](/Users/alanwren/myApps/model-experiments/gemma-abstract-finetuning/experiments/subagent_prompt_sprint_2026-04-09/agent_2/qwen3_235b_a22b_2507_reviewer_classifier_v2_payoff_first.json).
+- Added [deepseek_v32_generator_v4_payoff_first.json](/experiments/subagent_prompt_sprint_2026-04-09/agent_2/deepseek_v32_generator_v4_payoff_first.json).
+- Added [qwen3_235b_a22b_2507_reviewer_classifier_v2_payoff_first.json](/experiments/subagent_prompt_sprint_2026-04-09/agent_2/qwen3_235b_a22b_2507_reviewer_classifier_v2_payoff_first.json).
 - Generator direction:
   - choose the strongest open-worthy payoff first
   - treat title words as already spent
