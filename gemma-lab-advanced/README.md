@@ -36,8 +36,8 @@ section). The verdict and reasoning: [`CONCLUSION.md`](CONCLUSION.md).
 1. **Cut the vocabulary.** Gemma has a 262k-token vocabulary, and its tied embeddings are 63%
    of the weights. Tokenizing all 3.07M arXiv titles and abstracts showed 55% of those tokens
    never appear. The cut keeps tokens found in at least 100 papers, plus the byte alphabet and
-   every BPE merge parent needed to rebuild them, so any input still tokenizes. That takes the
-   model from 268M to about 136M parameters. Code: `quant_probe/strip_vocab.py`, checked by
+   every BPE merge parent needed to rebuild them, so any input still tokenizes. That leaves
+   65,465 tokens and takes the model from 268M to about 142M parameters. Code: `quant_probe/strip_vocab.py`, checked by
    `quant_probe/test_strip_tokenizer.py`.
 2. **Distill for faithfulness, not flair.** A larger Gemma (gemma-4-26b-a4b-qat, served
    locally by LM Studio, prompt only) wrote plain briefs for recent papers. The same teacher,
@@ -83,8 +83,10 @@ gold_pipeline/         notes on the 994-row human-style gold set (code is in ../
 
 ## Not in this repo
 
-Paper pools, generated briefs, judge outputs, model weights and the Python venv. They live in
-a private storage bucket. The scripts still name the paths they used, so they document the
+Paper pools, generated briefs, judge outputs and the Python venv. They live in a private
+storage bucket. The shipped model itself is public on Hugging Face:
+[peering-latent/gemma-abs-fit](https://huggingface.co/peering-latent/gemma-abs-fit)
+(`q5/faithful_only_q5`). The scripts still name the paths they used, so they document the
 work but will not run on a fresh clone without that data.
 
 To run anything: Apple Silicon, Python 3.12 and `mlx-lm`. Shell scripts move to the lab root
